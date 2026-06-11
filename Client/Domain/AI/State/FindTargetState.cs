@@ -25,7 +25,7 @@ namespace Client.Domain.AI.State
                 targetId = Helper.GetMobsToAttackByConfig(worldHandler, config, hero).FirstOrDefault()?.Id;
             }
 
-            if (targetId != null)
+            if (targetId != null && targetId != hero.Id)
             {
                 worldHandler.RequestAcquireTarget((uint)targetId);
             }

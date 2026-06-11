@@ -1,5 +1,6 @@
-﻿using Client.Domain.AI.Combat;
+using Client.Domain.AI.Combat;
 using Client.Domain.Entities;
+using Client.Domain.Enums;
 using Client.Domain.Service;
 using System;
 using System.Collections.Generic;
@@ -24,9 +25,15 @@ namespace Client.Domain.AI.State
                 return;
             }
 
-            if (!config.Combat.UseOnlySkills)
+            if (config.Combat.DontAttackPlayers && hero.Target.Type != CreatureTypeEnum.NPC)
+            {
+                return;
+            }
+
+            if (!config.Combat.UseOnlySkills && hero.Target.Id != lastAttackTargetId)
             {
                 worldHandler.RequestAttackOrFollow(hero.Target.Id);
+                lastAttackTargetId = hero.Target.Id;
             }
 
             if (config.Combat.SpoilIfPossible)
@@ -56,17 +63,17 @@ namespace Client.Domain.AI.State
 
         protected override void DoOnEnter(WorldHandler worldHandler, Config config, Hero hero)
         {
-            if (config.Combat.AutoUseShots)
-            {
-                // todo use only appropriate grade
-                foreach (var item in worldHandler.GetShotItems())
-                {
-                    if (!item.IsAutoused)
-                    {
-                        worldHandler.RequestToggleAutouseSoulshot(item.Id);
-                    }
-                }
-            }
+            // Reset attack tracking so we send a fresh Attack packet
+            // when entering combat with a new target.
+            lastAttackTargetId = 0;
         }
+
+        protected override void DoOnLeave(WorldHandler worldHandler, Config config, Hero hero)
+        {
+            // Intentionally left empty — we do NOT touch auto-shots at all.
+            lastAttackTargetId = 0;
+        }
+
+        private uint lastAttackTargetId = 0;
     }
 }

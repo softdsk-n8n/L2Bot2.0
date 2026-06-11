@@ -16,6 +16,8 @@ namespace Client.Domain.AI
 
         void Toggle();
 
+        void Disable();
+
         bool IsEnabled { get; }
 
         TypeEnum Type { get; set; }

@@ -110,6 +110,7 @@ namespace Client.Application.ViewModels
         public byte RestEndPercentMp { get => restEndPercentMp; set { if (value != restEndPercentMp) { restEndPercentMp = value; OnPropertyChanged(); } } }
         public ObservableCollection<SkillCondition> CombatSkills { get; set; } = new ObservableCollection<SkillCondition>();
         public bool AutoUseShots { get => autoUseShots; set { if (value != autoUseShots) { autoUseShots = value; OnPropertyChanged(); } } }
+        public bool DontAttackPlayers { get => dontAttackPlayers; set { if (value != dontAttackPlayers) { dontAttackPlayers = value; OnPropertyChanged(); } } }
         public uint AttackDistanceMili { get => attackDistanceMili; set { if (value != attackDistanceMili) { attackDistanceMili = value; OnPropertyChanged(); } } }
         public uint AttackDistanceBow { get => attackDistanceBow; set { if (value != attackDistanceBow) { attackDistanceBow = value; OnPropertyChanged(); } } }
         public bool UseOnlySkills { get => useOnlySkills; set { if (value != useOnlySkills) { useOnlySkills = value; OnPropertyChanged(); } } }
@@ -144,6 +145,7 @@ namespace Client.Application.ViewModels
             RestStartPercentMp = config.Combat.RestStartPecentMp;
             RestEndPercentMp = config.Combat.RestEndPecentMp;
             AutoUseShots = config.Combat.AutoUseShots;
+            DontAttackPlayers = config.Combat.DontAttackPlayers;
             AttackDistanceMili = config.Combat.AttackDistanceMili;
             AttackDistanceBow = config.Combat.AttackDistanceBow;
             UseOnlySkills = config.Combat.UseOnlySkills;
@@ -175,6 +177,7 @@ namespace Client.Application.ViewModels
             config.Combat.RestStartPecentMp = RestStartPercentMp;
             config.Combat.RestEndPecentMp = RestEndPercentMp;
             config.Combat.AutoUseShots = AutoUseShots;
+            config.Combat.DontAttackPlayers = DontAttackPlayers;
             config.Combat.AttackDistanceMili = AttackDistanceMili;
             config.Combat.AttackDistanceBow = AttackDistanceBow;
             config.Combat.UseOnlySkills = UseOnlySkills;
@@ -338,6 +341,7 @@ namespace Client.Application.ViewModels
         private byte restStartPercentMp = 0;
         private byte restEndPercentMp = 0;
         private bool autoUseShots = false;
+        private bool dontAttackPlayers = true;
         private uint attackDistanceMili = 0;
         private uint attackDistanceBow = 0;
         private bool useOnlySkills = false;

@@ -35,6 +35,12 @@ namespace Client.Domain.AI
             }
         }
 
+        public void Disable()
+        {
+            IsEnabled = false;
+            ResetState();
+        }
+
         public bool IsEnabled { get { return isEnabled; } private set { if (isEnabled != value) { isEnabled = value; OnPropertyChanged(); } } }
 
         public TypeEnum Type { get { return type; } set { if (type != value) { type = value; ResetState(); OnPropertyChanged(); } } }

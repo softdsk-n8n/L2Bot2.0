@@ -47,6 +47,7 @@ namespace Client
 
         public async Task StartAsync()
         {
+            ai.Disable();
             int hDll = LoadLibrary(dllName);
 
             if (hDll == 0)

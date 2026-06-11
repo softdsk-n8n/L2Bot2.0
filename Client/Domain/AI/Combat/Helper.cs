@@ -59,8 +59,6 @@ namespace Client.Domain.AI.Combat
             var result = worldHandler.GetAliveMobsSortedByDistanceToHero(config.Combat.MobsMaxDeltaZ)
                 .Where(x => !config.Combat.ExcludedMobIds.ContainsKey(x.NpcId));
 
-            result = result.Where(x => config.Combat.Zone.IsInside(x.Transform.Position));
-
             if (config.Combat.IncludedMobIds.Count > 0)
             {
                 result = result.Where(x => config.Combat.IncludedMobIds.ContainsKey(x.NpcId));
@@ -74,6 +72,11 @@ namespace Client.Domain.AI.Combat
             if (config.Combat.MobLevelUpperLimit != null)
             {
                 result = result.Where(x => (int) (x.Level - hero.ExperienceInfo.Level) <= config.Combat.MobLevelUpperLimit);
+            }
+
+            if (config.Combat.Zone != null && config.Combat.Zone.Radius > 0)
+            {
+                result = result.Where(x => config.Combat.Zone.IsInside(x.Transform.Position));
             }
 
             return result.ToList();

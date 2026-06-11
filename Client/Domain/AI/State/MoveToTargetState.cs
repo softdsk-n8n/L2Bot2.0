@@ -1,5 +1,6 @@
 ﻿using Client.Domain.AI.Combat;
 using Client.Domain.Entities;
+using Client.Domain.Enums;
 using Client.Domain.Service;
 using Client.Domain.ValueObjects;
 using System;
@@ -15,9 +16,14 @@ namespace Client.Domain.AI.State
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
         {
             var target = hero.Target;
-            if (target == null)
+            if (target == null || target == hero)
             {
-                target = hero;
+                return;
+            }
+
+            if (config.Combat.DontAttackPlayers && target.Type != CreatureTypeEnum.NPC)
+            {
+                return;
             }
 
             var distanceToPrevPosition = targetPosition != null ? targetPosition.HorizontalDistance(target.Transform.Position) : 0;

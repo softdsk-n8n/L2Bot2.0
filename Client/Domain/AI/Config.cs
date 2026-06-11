@@ -29,6 +29,7 @@ namespace Client.Domain.AI
 
             public CombatZone Zone { get; set; } = new CombatZone(new Vector3(0, 0, 0), 0);
             public bool AutoUseShots { get; set; } = true;
+            public bool DontAttackPlayers { get; set; } = true;
             public uint AttackDistanceMili { get; set; } = 80;
             public uint AttackDistanceBow { get; set; } = 500;
             public bool UseOnlySkills { get; set; } = false;

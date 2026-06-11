@@ -17,7 +17,7 @@ namespace Client.Domain.AI.State
 
         protected override void DoOnEnter(WorldHandler worldHandler, Config config, Hero hero)
         {
-            worldHandler.RequestAcquireTarget(hero.Id);
+            // Self-target removed to avoid acquiring hero as target.
         }
 
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
