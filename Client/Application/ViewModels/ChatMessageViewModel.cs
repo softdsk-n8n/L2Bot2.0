@@ -44,12 +44,13 @@ namespace Client.Application.ViewModels
                 { ChatChannelEnum.Party, Brushes.LimeGreen },
                 { ChatChannelEnum.Clan, Brushes.Violet },
                 { ChatChannelEnum.Gm, Brushes.Red },
-                { ChatChannelEnum.Trade, Brushes.HotPink }
+                { ChatChannelEnum.Trade, Brushes.HotPink },
+                { ChatChannelEnum.Announcement, Brushes.Yellow }
             };
         }
 
         private readonly ChatMessage message;
         private readonly Dictionary<ChatChannelEnum, SolidColorBrush> colors;
-        private readonly SolidColorBrush defaultColor = Brushes.Black;
+        private readonly SolidColorBrush defaultColor = Brushes.White;
     }
 }

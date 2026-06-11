@@ -66,3 +66,22 @@
 - **Test Environment:** `E:\AI\L2RebornBot\L2Bot 2.0 Interlude\publish\`
 - **Launch Script:** `E:\AI\L2RebornBot\client_only.bat`
 
+---
+
+## 2026-06-12 — UI Improvements
+
+### Start/Stop Button (MainWindow)
+- **What:** Added prominent Start/Stop button to main UI (right side of menu bar).
+- **How:** Bound to `ToggleAICommand`, content bound to `AIStatusText` property.
+- **Files:** `MainWindow.xaml`, `MainViewModel.cs`.
+
+### Dark Chat Background
+- **What:** Chat `ListBox` now uses dark background (`#FF1E1E1E`).
+- **How:** Changed `Background` property, changed default message color from `Brushes.Black` to `Brushes.White` for readability.
+- **Files:** `MainWindow.xaml`, `ChatMessageViewModel.cs`.
+
+### System Messages Toggle & Color
+- **What:** System messages (`ChatChannelEnum.Announcement`) now appear in **Yellow** and can be toggled via checkbox.
+- **How:** Added `ShowSystemMessages` property + checkbox binding; filter in `Handle(ChatMessageCreatedEvent)` skips Announcement if unchecked.
+- **Files:** `MainWindow.xaml`, `MainViewModel.cs`, `ChatMessageViewModel.cs`.
+

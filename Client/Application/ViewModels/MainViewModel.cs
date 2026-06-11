@@ -3,6 +3,7 @@ using Client.Application.Components;
 using Client.Domain.AI;
 using Client.Domain.Common;
 using Client.Domain.Entities;
+using Client.Domain.Enums;
 using Client.Domain.Events;
 using Client.Domain.Service;
 using Client.Domain.ValueObjects;
@@ -109,6 +110,10 @@ namespace Client.Application.ViewModels
 
         public void Handle(ChatMessageCreatedEvent @event)
         {
+            if (@event.Message.Channel == ChatChannelEnum.Announcement && !ShowSystemMessages)
+            {
+                return;
+            }
             ChatMessages.Add(new ChatMessageViewModel(@event.Message));
         }
 
@@ -184,6 +189,7 @@ namespace Client.Application.ViewModels
         {
             ai.Toggle();
             OnPropertyChanged("AIStatus");
+            OnPropertyChanged("AIStatusText");
         }
 
         private void OnChangeAIType(object? param)
@@ -220,6 +226,19 @@ namespace Client.Application.ViewModels
         public HeroSummaryInfoViewModel? Hero { get; private set; }
         public MapViewModel Map { get; private set; }
         public bool AIStatus => ai.IsEnabled;
+        public string AIStatusText => ai.IsEnabled ? "Stop" : "Start";
+        public bool ShowSystemMessages
+        {
+            get => showSystemMessages;
+            set
+            {
+                if (showSystemMessages != value)
+                {
+                    showSystemMessages = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         public TypeEnum AIType => ai.Type;
 
         public Hero? hero;
@@ -227,5 +246,6 @@ namespace Client.Application.ViewModels
         private readonly AsyncPathMoverInterface pathMover;
         private readonly AIInterface ai;
         private readonly Config aiConfig;
+        private bool showSystemMessages = true;
     }
 }
