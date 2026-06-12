@@ -307,5 +307,6 @@
                 <Label Grid.Column="2" Content="{Binding Scale,Mode=OneWay,StringFormat='{}1:{0}'}" HorizontalAlignment="Right" />
             </Grid>
         </StackPanel>
+        <Button Content="{Binding DrawZoneButtonText}" Command="{Binding ToggleDrawZoneCommand}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,40,0,0" Opacity="0.9" />
     </Grid>
 </ContentControl>

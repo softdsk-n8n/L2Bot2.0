@@ -16,8 +16,11 @@ namespace Client.Application.ViewModels
             VieportSize = new Vector3(viewportWidth, viewportHeight, 0);
         }
 
+        public CombatZone Zone { get; }
+
         public AICombatZoneMapViewModel(CombatZone combatZone, Hero hero)
         {
+            Zone = combatZone;
             this.combatZone = combatZone;
             this.hero = hero;
 

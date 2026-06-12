@@ -110,3 +110,8 @@
 ### Build & Deploy
 - **Status:** `dotnet build` succeeded (`CS8625` nullable warning only). `dotnet publish` deployed to `publish\`.
 
+### Draw Zone by Click (Map)
+- **What:** Can now draw polygon combat zone directly on map with mouse clicks (Adrenaline-style).
+- **How:** Added `IsDrawingZone` + `ToggleDrawZoneCommand` to `MapViewModel`. `OnLeftMouseClick` now appends click coordinates to `CombatZone.Vertices` when drawing mode is active. Added `Zone` property to `AICombatZoneMapViewModel`. Added `Draw Zone` button on `Map.xaml`.
+- **Files:** `MapViewModel.cs`, `AICombatZoneMapViewModel.cs`, `Map.xaml`.
+

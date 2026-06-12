@@ -1,4 +1,5 @@
-﻿using Client.Application.Commands;
+﻿using Client.Domain.AI.Combat;
+using Client.Application.Commands;
 using Client.Application.Components;
 using Client.Domain.Common;
 using Client.Domain.DTO;
@@ -151,6 +152,11 @@ namespace Client.Application.ViewModels
         }
 
         public ICommand MouseLeftClickCommand { get; }
+        public ICommand ToggleDrawZoneCommand { get; }
+        private bool isDrawingZone = false;
+        public bool IsDrawingZone { get => isDrawingZone; set { if (isDrawingZone != value) { isDrawingZone = value; OnPropertyChanged(); OnPropertyChanged(nameof(DrawZoneButtonText)); } } }
+        public string DrawZoneButtonText => IsDrawingZone ? "Stop Draw" : "Draw Zone";
+
         private async Task OnLeftMouseClick(object? obj)
         {
             if (obj == null)
@@ -169,7 +175,18 @@ namespace Client.Application.ViewModels
                 hero.Transform.Position.Z
             );
 
+            if (IsDrawingZone && CombatZone != null)
+            {
+                CombatZone.Zone.Vertices.Add(location);
+                return;
+            }
+
             await pathMover.MoveAsync(location);
+        }
+
+        private void OnToggleDrawZone(object? sender)
+        {
+            IsDrawingZone = !IsDrawingZone;
         }
 
         public void OnMouseWheel(object sender, MouseWheelEventArgs e)
@@ -205,6 +222,7 @@ namespace Client.Application.ViewModels
             Drops.CollectionChanged += Drops_CollectionChanged;
             Path.CollectionChanged += Path_CollectionChanged;
             MouseLeftClickCommand = new RelayCommand(async (o) => await OnLeftMouseClick(o));
+            ToggleDrawZoneCommand = new RelayCommand(OnToggleDrawZone);
             mousePosition.PropertyChanged += MousePosition_PropertyChanged;
             BindingOperations.EnableCollectionSynchronization(Path, pathCollectionLock);
             this.pathMover = pathMover;
