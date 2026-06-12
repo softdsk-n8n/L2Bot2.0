@@ -154,6 +154,7 @@ namespace Client.Application.ViewModels
         public ICommand MouseLeftClickCommand { get; }
         public ICommand ToggleDrawZoneCommand { get; }
         public ICommand ToggleShowMobAggroCommand { get; }
+        public ICommand ClearZoneCommand { get; }
         private bool isDrawingZone = false;
         private bool showMobAggro = false;
         public bool IsDrawingZone { get => isDrawingZone; set { if (isDrawingZone != value) { isDrawingZone = value; OnPropertyChanged(); OnPropertyChanged(nameof(DrawZoneButtonText)); } } }
@@ -191,6 +192,11 @@ namespace Client.Application.ViewModels
         private void OnToggleShowMobAggro(object? sender)
         {
             ShowMobAggro = !ShowMobAggro;
+        }
+
+        private void OnClearZone(object? sender)
+        {
+            CombatZone?.Zone.Vertices.Clear();
         }
 
         private void OnToggleDrawZone(object? sender)
@@ -233,6 +239,7 @@ namespace Client.Application.ViewModels
             MouseLeftClickCommand = new RelayCommand(async (o) => await OnLeftMouseClick(o));
             ToggleDrawZoneCommand = new RelayCommand(OnToggleDrawZone);
             ToggleShowMobAggroCommand = new RelayCommand(OnToggleShowMobAggro);
+            ClearZoneCommand = new RelayCommand(OnClearZone);
             mousePosition.PropertyChanged += MousePosition_PropertyChanged;
             BindingOperations.EnableCollectionSynchronization(Path, pathCollectionLock);
             this.pathMover = pathMover;

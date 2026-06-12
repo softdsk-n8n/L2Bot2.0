@@ -80,6 +80,11 @@
         </DockPanel>
         <DockPanel Grid.Row="2" Grid.Column="0">
             <CheckBox DockPanel.Dock="Top" Content="System messages" IsChecked="{Binding ShowSystemMessages}" Margin="4" />
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4">
+                <Button Content="{Binding Map.DrawZoneButtonText}" Command="{Binding Map.ToggleDrawZoneCommand}" Margin="0,0,5,0" Padding="8,2" />
+                <Button Content="Clear" Command="{Binding Map.ClearZoneCommand}" Margin="0,0,5,0" Padding="8,2" />
+                <CheckBox Content="Show Aggro" IsChecked="{Binding Map.ShowMobAggro}" VerticalAlignment="Center" />
+            </StackPanel>
             <ListBox x:Name="listBox" ItemsSource="{Binding ChatMessages, Mode=OneWay}" Background="#FF1E1E1E">
                 <ListBox.ItemTemplate>
                     <DataTemplate>

@@ -136,3 +136,8 @@
   3. Default `Radius` set to `1000` in `Config.cs`.
 - **Files:** `MapViewModel.cs`, `Config.cs`.
 
+### UI: Zone Draw & Aggro controls moved to MainWindow
+- **What:** Draw Zone / Clear / Show Aggro controls moved from map overlay to main panel (near System Messages checkbox).
+- **How:** Added `StackPanel` in `MainWindow.xaml` with buttons bound to `Map.ToggleDrawZoneCommand`, `Map.ClearZoneCommand`, `Map.ShowMobAggro`. Removed controls from `Map.xaml`. Added `ClearZoneCommand` to `MapViewModel`.
+- **Files:** `MainWindow.xaml`, `Map.xaml`, `MapViewModel.cs`.
+
