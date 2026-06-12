@@ -2,14 +2,17 @@
 using Client.Application.Components;
 using Client.Application.Views;
 using Client.Domain.AI;
+using Client.Domain.AI.Combat;
 using Client.Domain.AI.IO;
 using Client.Domain.Common;
 using Client.Domain.Entities;
 using Client.Domain.Events;
 using Client.Domain.Helpers;
+using Client.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 
@@ -45,14 +48,34 @@ namespace Client.Application.ViewModels
 
         public class CombatZone : ObservableObject
         {
+            private ZoneType type = ZoneType.DynamicCircle;
             private float x = 0;
             private float y = 0;
             private float radius = 0;
+            private bool isRelativeToHero = false;
+            private ObservableCollection<Vector3> vertices = new ObservableCollection<Vector3>();
+            private uint maxZDelta = 150;
+            private bool bypassObstacles = true;
+            private int bypassTimeoutMs = 3500;
+            private int stepBackMs = 50;
+            private int stepSideMs = 100;
+            private Vector3? selectedVertex = null;
 
-            public float X { get => x; set { if (value != x) { x = value; OnPropertyChanged(); } } }
-            public float Y { get => y; set { if (value != y) { y = value; OnPropertyChanged(); } } }
-            public float Radius { get => radius; set { if (value != radius) { radius = value; OnPropertyChanged(); } } }
+            public ZoneType Type { get => type; set { if (type != value) { type = value; OnPropertyChanged(); } } }
+            public float X { get => x; set { if (x != value) { x = value; OnPropertyChanged(); } } }
+            public float Y { get => y; set { if (y != value) { y = value; OnPropertyChanged(); } } }
+            public float Radius { get => radius; set { if (radius != value) { radius = value; OnPropertyChanged(); } } }
+            public bool IsRelativeToHero { get => isRelativeToHero; set { if (isRelativeToHero != value) { isRelativeToHero = value; OnPropertyChanged(); } } }
+            public ObservableCollection<Vector3> Vertices { get => vertices; set { if (vertices != value) { vertices = value; OnPropertyChanged(); } } }
+            public Vector3? SelectedVertex { get => selectedVertex; set { if (selectedVertex != value) { selectedVertex = value; OnPropertyChanged(); } } }
+            public uint MaxZDelta { get => maxZDelta; set { if (maxZDelta != value) { maxZDelta = value; OnPropertyChanged(); } } }
+            public bool BypassObstacles { get => bypassObstacles; set { if (bypassObstacles != value) { bypassObstacles = value; OnPropertyChanged(); } } }
+            public int BypassTimeoutMs { get => bypassTimeoutMs; set { if (bypassTimeoutMs != value) { bypassTimeoutMs = value; OnPropertyChanged(); } } }
+            public int StepBackMs { get => stepBackMs; set { if (stepBackMs != value) { stepBackMs = value; OnPropertyChanged(); } } }
+            public int StepSideMs { get => stepSideMs; set { if (stepSideMs != value) { stepSideMs = value; OnPropertyChanged(); } } }
         }
+
+        public List<ZoneType> ZoneTypeValues { get; } = new List<ZoneType> { ZoneType.Free, ZoneType.DynamicCircle, ZoneType.FixedPolygon };
 
         public AIConfigViewModel(NpcInfoHelperInterface npcInfoHelper, ItemInfoHelperInterface itemInfoHelper, SkillInfoHelperInterface skillInfoHelper, Config config, ConfigSerializerInterface configSerializer, ConfigDeserializerInterface configDeserializer)
         {
@@ -67,6 +90,10 @@ namespace Client.Application.ViewModels
             SaveCommand = new RelayCommand(OnSave);
             ResetCommand = new RelayCommand(OnReset);
             GetHeroPosition = new RelayCommand(OnGetHeroPosition);
+            SetZoneFromHeroCommand = new RelayCommand(OnSetZoneFromHero);
+            AddVertexCommand = new RelayCommand(OnAddVertex);
+            RemoveVertexCommand = new RelayCommand(OnRemoveVertex);
+            ClearVerticesCommand = new RelayCommand(OnClearVertices);
             Skills = new ObservableCollection<ObjectInfo>(skillInfoHelper.GetAllSkills().Select(x => x.Value).Where(x => x.IsActive).ToList());
         }
 
@@ -75,6 +102,10 @@ namespace Client.Application.ViewModels
         public ICommand SaveCommand { get; }
         public ICommand ResetCommand { get; }
         public ICommand GetHeroPosition { get; }
+        public ICommand SetZoneFromHeroCommand { get; }
+        public ICommand AddVertexCommand { get; }
+        public ICommand RemoveVertexCommand { get; }
+        public ICommand ClearVerticesCommand { get; }
         public Action? Close {  get; set; }
         public Action<string>? OpenSaveDialog {  get; set; }
         public Func<string?>? OpenOpenDialog {  get; set; }
@@ -152,6 +183,15 @@ namespace Client.Application.ViewModels
             Zone.X = config.Combat.Zone.Center.X;
             Zone.Y = config.Combat.Zone.Center.Y;
             Zone.Radius = config.Combat.Zone.Radius;
+            Zone.Type = config.Combat.Zone.Type;
+            Zone.IsRelativeToHero = config.Combat.Zone.IsRelativeToHero;
+            Zone.Vertices.Clear();
+            foreach (var v in config.Combat.Zone.Vertices) Zone.Vertices.Add(v);
+            Zone.MaxZDelta = config.Combat.Zone.MaxZDelta;
+            Zone.BypassObstacles = config.Combat.Zone.BypassObstacles;
+            Zone.BypassTimeoutMs = config.Combat.Zone.BypassTimeoutMs;
+            Zone.StepBackMs = config.Combat.Zone.StepBackMs;
+            Zone.StepSideMs = config.Combat.Zone.StepSideMs;
             DelevelingTargetLevel = config.Deleveling.TargetLevel;
             DelevelingAttackDistance = config.Deleveling.AttackDistance;
             DelevelingSkillId = config.Deleveling.SkillId;
@@ -181,10 +221,18 @@ namespace Client.Application.ViewModels
             config.Combat.AttackDistanceMili = AttackDistanceMili;
             config.Combat.AttackDistanceBow = AttackDistanceBow;
             config.Combat.UseOnlySkills = UseOnlySkills;
+            config.Combat.Zone.Type = Zone.Type;
             config.Combat.Zone.Center.X = Zone.X;
             config.Combat.Zone.Center.Y = Zone.Y;
-            config.Combat.Zone.Center.Z = 0;
             config.Combat.Zone.Radius = Zone.Radius;
+            config.Combat.Zone.IsRelativeToHero = Zone.IsRelativeToHero;
+            config.Combat.Zone.Vertices.Clear();
+            foreach (var v in Zone.Vertices) config.Combat.Zone.Vertices.Add(v);
+            config.Combat.Zone.MaxZDelta = Zone.MaxZDelta;
+            config.Combat.Zone.BypassObstacles = Zone.BypassObstacles;
+            config.Combat.Zone.BypassTimeoutMs = Zone.BypassTimeoutMs;
+            config.Combat.Zone.StepBackMs = Zone.StepBackMs;
+            config.Combat.Zone.StepSideMs = Zone.StepSideMs;
             config.Deleveling.TargetLevel = DelevelingTargetLevel;
             config.Deleveling.AttackDistance = DelevelingAttackDistance;
             config.Deleveling.SkillId = DelevelingSkillId;
@@ -317,6 +365,38 @@ namespace Client.Application.ViewModels
                 Zone.X = hero.Transform.Position.X;
                 Zone.Y = hero.Transform.Position.Y;
             }
+        }
+
+        private void OnSetZoneFromHero(object? sender)
+        {
+            if (hero != null)
+            {
+                Zone.X = hero.Transform.Position.X;
+                Zone.Y = hero.Transform.Position.Y;
+            }
+        }
+
+        private void OnAddVertex(object? sender)
+        {
+            if (hero != null)
+            {
+                Zone.Vertices.Add(new Vector3(hero.Transform.Position.X, hero.Transform.Position.Y, 0));
+            }
+        }
+
+        private void OnRemoveVertex(object? sender)
+        {
+            if (Zone.SelectedVertex != null)
+            {
+                Zone.Vertices.Remove(Zone.SelectedVertex);
+                Zone.SelectedVertex = null;
+            }
+        }
+
+        private void OnClearVertices(object? sender)
+        {
+            Zone.Vertices.Clear();
+            Zone.SelectedVertex = null;
         }
 
         private readonly NpcInfoHelperInterface npcInfoHelper;

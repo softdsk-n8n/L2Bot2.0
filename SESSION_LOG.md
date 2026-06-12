@@ -85,3 +85,28 @@
 - **How:** Added `ShowSystemMessages` property + checkbox binding; filter in `Handle(ChatMessageCreatedEvent)` skips Announcement if unchecked.
 - **Files:** `MainWindow.xaml`, `MainViewModel.cs`, `ChatMessageViewModel.cs`.
 
+## 2026-06-12 — Combat Zone Refactor (Polygon + Dynamic Circle)
+
+### Domain Model Refactor
+- **What:** Replaced fixed `Center`/`Radius` with polymorphic `CombatZone` model (`Free`, `DynamicCircle`, `FixedPolygon`).
+- **How:** Added `ZoneType` enum, `ObservableCollection<Vector3> Vertices`, `IsRelativeToHero`, `MaxZDelta`, `BypassObstacles`, `BypassTimeoutMs`, `StepBackMs`, `StepSideMs`. `IsInside()` uses ray-casting for polygon, distance for circle.
+- **Files:** `CombatZone.cs`, `Config.cs`.
+
+### AI Logic Updates
+- **What:** 3D distance checks instead of horizontal; basic anti-jam (bypass obstacles).
+- **How:** `Helper.cs` now filters by `Zone.MaxZDelta` and `Zone.IsInside`. `TransitionBuilder.cs` uses `Distance` (3D). `MoveToTargetState.cs` adds `CheckAntiJam()` — if locked for > timeout ms, performs perpendicular escape step.
+- **Files:** `Helper.cs`, `TransitionBuilder.cs`, `MoveToTargetState.cs`.
+
+### Map Visualization
+- **What:** Combat zone now renders as polygon on map instead of ellipse.
+- **How:** `AICombatZoneMapViewModel.cs` generates screen-space vertices (16 segments for circle). `Map.xaml` uses `<Polygon>` with `PointsConverter`.
+- **Files:** `AICombatZoneMapViewModel.cs`, `Map.xaml`, `PointsConverter.cs`.
+
+### Config UI (Combat Zone Tab)
+- **What:** New "Combat Zone" tab in AIConfig with all settings.
+- **How:** `AIConfigViewModel.cs` wrapper expanded with `Type`, `Vertices`, `MaxZDelta`, anti-jam fields + commands (`SetZoneFromHero`, `AddVertex`, `RemoveVertex`, `ClearVertices`). `AIConfig.xaml` new `TabItem` with ComboBox, DataGrid, TextBoxes, CheckBoxes, Buttons.
+- **Files:** `AIConfigViewModel.cs`, `AIConfig.xaml`.
+
+### Build & Deploy
+- **Status:** `dotnet build` succeeded (`CS8625` nullable warning only). `dotnet publish` deployed to `publish\`.
+

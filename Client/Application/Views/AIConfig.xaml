@@ -115,25 +115,6 @@
                                                 <RowDefinition Height="Auto"></RowDefinition>
                                                 <RowDefinition Height="Auto"></RowDefinition>
                                             </Grid.RowDefinitions>
-                                            <Label Grid.Row="0" Grid.Column="0">X:</Label>
-                                            <TextBox Width="100" HorizontalAlignment="Left" Grid.Row="0" Grid.Column="1">
-                                                <TextBox.Text>
-                                                    <Binding Path="Zone.X" UpdateSourceTrigger="PropertyChanged"/>
-                                                </TextBox.Text>
-                                            </TextBox>
-                                            <Button Grid.Row="0" Grid.Column="2" Command="{Binding GetHeroPosition}">Current</Button>
-                                            <Label Grid.Row="1" Grid.Column="0">Y:</Label>
-                                            <TextBox Width="100" HorizontalAlignment="Left" Grid.Row="1" Grid.Column="1">
-                                                <TextBox.Text>
-                                                    <Binding Path="Zone.Y" UpdateSourceTrigger="PropertyChanged"/>
-                                                </TextBox.Text>
-                                            </TextBox>
-                                            <Label Grid.Row="2" Grid.Column="0">Radius:</Label>
-                                            <TextBox Width="100" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="1">
-                                                <TextBox.Text>
-                                                    <Binding Path="Zone.Radius" UpdateSourceTrigger="PropertyChanged"/>
-                                                </TextBox.Text>
-                                            </TextBox>
                                         </Grid>
                                     </StackPanel>
                                 </Grid>
@@ -377,6 +358,105 @@
                                 Header="Attacking skill:"/>
                         </StackPanel>
                     </Grid>
+                </TabItem.Content>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>Combat Zone</TabItem.Header>
+                <TabItem.Content>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Label Grid.Row="0" Grid.Column="0">Zone Type:</Label>
+                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding ZoneTypeValues}" SelectedItem="{Binding Zone.Type}"/>
+
+                            <Label Grid.Row="1" Grid.Column="0">Center X:</Label>
+                            <TextBox Grid.Row="1" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.X" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <Label Grid.Row="2" Grid.Column="0">Center Y:</Label>
+                            <TextBox Grid.Row="2" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.Y" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <Label Grid.Row="3" Grid.Column="0">Radius:</Label>
+                            <TextBox Grid.Row="3" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.Radius" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding Zone.IsRelativeToHero}">Relative to Hero</CheckBox>
+
+                            <Label Grid.Row="5" Grid.Column="0">Max Z Delta:</Label>
+                            <TextBox Grid.Row="5" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.MaxZDelta" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <CheckBox Grid.Row="6" Grid.Column="1" IsChecked="{Binding Zone.BypassObstacles}">Bypass Obstacles</CheckBox>
+
+                            <Label Grid.Row="7" Grid.Column="0">Bypass Timeout (ms):</Label>
+                            <TextBox Grid.Row="7" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.BypassTimeoutMs" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <Label Grid.Row="8" Grid.Column="0">Step Back (ms):</Label>
+                            <TextBox Grid.Row="8" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.StepBackMs" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <Label Grid.Row="9" Grid.Column="0">Step Side (ms):</Label>
+                            <TextBox Grid.Row="9" Grid.Column="1">
+                                <TextBox.Text>
+                                    <Binding Path="Zone.StepSideMs" UpdateSourceTrigger="PropertyChanged"/>
+                                </TextBox.Text>
+                            </TextBox>
+
+                            <Label Grid.Row="10" Grid.Column="0">Vertices:</Label>
+                            <StackPanel Grid.Row="10" Grid.Column="1" Orientation="Horizontal">
+                                <Button Command="{Binding SetZoneFromHeroCommand}" Margin="0,0,5,0">Set from Hero</Button>
+                                <Button Command="{Binding AddVertexCommand}" Margin="0,0,5,0">Add Hero</Button>
+                                <Button Command="{Binding RemoveVertexCommand}" Margin="0,0,5,0">Remove</Button>
+                                <Button Command="{Binding ClearVerticesCommand}">Clear</Button>
+                            </StackPanel>
+
+                            <DataGrid Grid.Row="11" Grid.Column="1" ItemsSource="{Binding Zone.Vertices}" SelectedItem="{Binding Zone.SelectedVertex}" AutoGenerateColumns="False" CanUserAddRows="False" Height="200">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="X" Binding="{Binding X}"/>
+                                    <DataGridTextColumn Header="Y" Binding="{Binding Y}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                        </Grid>
+                    </ScrollViewer>
                 </TabItem.Content>
             </TabItem>
         </TabControl>

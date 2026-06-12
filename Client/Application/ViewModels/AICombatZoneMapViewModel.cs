@@ -4,9 +4,7 @@ using Client.Domain.Entities;
 using Client.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 
 namespace Client.Application.ViewModels
 {
@@ -25,29 +23,47 @@ namespace Client.Application.ViewModels
 
             hero.Transform.Position.PropertyChanged += HeroPosition_PropertyChanged;
             combatZone.PropertyChanged += CombatZone_PropertyChanged;
-            combatZone.Center.PropertyChanged += CombatZoneCenter_PropertyChanged;
-        }
-
-        private void CombatZoneCenter_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            OnPropertyChanged("Center");
         }
 
         private void CombatZone_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "Radius")
-            {
-                OnPropertyChanged("Radius");
-            }
+            OnPropertyChanged("ScreenVertices");
         }
 
-        public Vector3 Center => new Vector3(
-            (combatZone.Center.X - hero.Transform.Position.X) / scale + (VieportSize.X / 2),
-            (combatZone.Center.Y - hero.Transform.Position.Y) / scale + (VieportSize.Y / 2),
-            0
-        );
-
-        public float Radius => combatZone.Radius / scale;
+        public List<Point> ScreenVertices
+        {
+            get
+            {
+                if (combatZone.Type == ZoneType.Free) return new List<Point>();
+                var heroPos = hero.Transform.Position;
+                var pts = new List<Point>();
+                switch (combatZone.Type)
+                {
+                    case ZoneType.DynamicCircle:
+                        var center = combatZone.IsRelativeToHero ? heroPos : combatZone.Center;
+                        int segments = 16;
+                        for (int i = 0; i < segments; i++)
+                        {
+                            double angle = 2 * Math.PI * i / segments;
+                            float wx = center.X + combatZone.Radius * (float)Math.Cos(angle);
+                            float wy = center.Y + combatZone.Radius * (float)Math.Sin(angle);
+                            pts.Add(new Point(
+                                (wx - heroPos.X) / scale + (vieportSize.X / 2),
+                                (wy - heroPos.Y) / scale + (vieportSize.Y / 2)));
+                        }
+                        break;
+                    case ZoneType.FixedPolygon:
+                        foreach (var v in combatZone.Vertices)
+                        {
+                            pts.Add(new Point(
+                                (v.X - heroPos.X) / scale + (vieportSize.X / 2),
+                                (v.Y - heroPos.Y) / scale + (vieportSize.Y / 2)));
+                        }
+                        break;
+                }
+                return pts;
+            }
+        }
 
         public float Scale
         {
@@ -57,8 +73,7 @@ namespace Client.Application.ViewModels
                 if (scale != value)
                 {
                     scale = value;
-                    OnPropertyChanged("Center");
-                    OnPropertyChanged("Radius");
+                    OnPropertyChanged("ScreenVertices");
                 }
             }
         }
@@ -71,14 +86,14 @@ namespace Client.Application.ViewModels
                 if (vieportSize != value)
                 {
                     vieportSize = value;
-                    OnPropertyChanged("Center");
+                    OnPropertyChanged("ScreenVertices");
                 }
             }
         }
 
         private void HeroPosition_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            OnPropertyChanged("Center");
+            OnPropertyChanged("ScreenVertices");
         }
 
         private readonly CombatZone combatZone;

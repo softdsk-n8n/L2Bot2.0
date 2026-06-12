@@ -56,7 +56,7 @@ namespace Client.Domain.AI.Combat
 
         public static List<NPC> GetMobsToAttackByConfig(WorldHandler worldHandler, Config config, Hero hero)
         {
-            var result = worldHandler.GetAliveMobsSortedByDistanceToHero(config.Combat.MobsMaxDeltaZ)
+            var result = worldHandler.GetAliveMobsSortedByDistanceToHero(config.Combat.Zone.MaxZDelta)
                 .Where(x => !config.Combat.ExcludedMobIds.ContainsKey(x.NpcId));
 
             if (config.Combat.IncludedMobIds.Count > 0)
@@ -74,9 +74,9 @@ namespace Client.Domain.AI.Combat
                 result = result.Where(x => (int) (x.Level - hero.ExperienceInfo.Level) <= config.Combat.MobLevelUpperLimit);
             }
 
-            if (config.Combat.Zone != null && config.Combat.Zone.Radius > 0)
+            if (config.Combat.Zone != null)
             {
-                result = result.Where(x => config.Combat.Zone.IsInside(x.Transform.Position));
+                result = result.Where(x => config.Combat.Zone.IsInside(x.Transform.Position, hero.Transform.Position));
             }
 
             return result.ToList();

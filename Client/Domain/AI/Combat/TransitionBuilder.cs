@@ -103,7 +103,7 @@ namespace Client.Domain.AI.Combat
                             }
                         }
 
-                        var distance = worldHandler.Hero.Transform.Position.HorizontalDistance(worldHandler.Hero.Target.Transform.Position);
+                        var distance = worldHandler.Hero.Transform.Position.Distance(worldHandler.Hero.Target.Transform.Position);
                         return distance < Helper.GetAttackDistanceByConfig(worldHandler, config, worldHandler.Hero, worldHandler.Hero.Target)
                             && pathMover.Pathfinder.HasLineOfSight(worldHandler.Hero.Transform.Position, worldHandler.Hero.Target.Transform.Position);
                     }),
