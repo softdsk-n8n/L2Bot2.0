@@ -180,6 +180,7 @@ namespace Client.Application.ViewModels
 
             if (IsDrawingZone && CombatZone != null)
             {
+                CombatZone.Zone.Type = ZoneType.FixedPolygon;
                 CombatZone.Zone.Vertices.Add(location);
                 return;
             }
@@ -353,17 +354,18 @@ namespace Client.Application.ViewModels
             {
                 if (value != combatZone)
                 {
-                    if (value == null)
-                    {
-                        if (combatZone != null)
+                        if (value == null)
                         {
-                            MapUpdated -= combatZone.MapUpdated;
+                            if (combatZone != null)
+                            {
+                                MapUpdated -= combatZone.MapUpdated;
+                            }
                         }
-                    }
-                    else
-                    {
-                        MapUpdated += value.MapUpdated;
-                    }
+                        else
+                        {
+                            MapUpdated += value.MapUpdated;
+                            value.MapUpdated(scale, (float)ViewportWidth, (float)ViewportHeight);
+                        }
                     combatZone = value;
                     OnPropertyChanged();
                 }

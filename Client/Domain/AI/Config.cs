@@ -27,7 +27,7 @@ namespace Client.Domain.AI
             public byte RestStartPecentMp { get; set; } = 10;
             public byte RestEndPecentMp { get; set; } = 100;
 
-            public CombatZone Zone { get; set; } = new CombatZone();
+            public CombatZone Zone { get; set; } = new CombatZone() { Radius = 1000 };
             public bool AutoUseShots { get; set; } = true;
             public bool DontAttackPlayers { get; set; } = true;
             public uint AttackDistanceMili { get; set; } = 80;

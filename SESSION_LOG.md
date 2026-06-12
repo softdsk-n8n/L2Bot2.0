@@ -125,3 +125,14 @@
 - **How:** Added `ShowMobAggro` + `ToggleShowMobAggroCommand` to `MapViewModel`. Replaced `DataTrigger` with `MultiDataTrigger` on `CreatureAggroRadius` — visible only if both `IsAggressive=True` AND `ShowMobAggro=True`. Added `CheckBox` on map.
 - **Files:** `MapViewModel.cs`, `Map.xaml`.
 
+### Fix: Polygon not rendering + Bot not attacking
+- **Root causes:**
+  1. `CombatZone` setter never called `MapUpdated`, leaving `Scale=0` in `AICombatZoneMapViewModel` → all screen coords = NaN.
+  2. `FixedPolygon` not selected automatically when drawing on map.
+  3. Default `Radius=0` made zone empty.
+- **Fixes:**
+  1. `CombatZone` setter now calls `value.MapUpdated(scale, ...)` immediately.
+  2. `MapViewModel.OnLeftMouseClick` auto-sets `Zone.Type = FixedPolygon` when drawing.
+  3. Default `Radius` set to `1000` in `Config.cs`.
+- **Files:** `MapViewModel.cs`, `Config.cs`.
+
