@@ -115,3 +115,13 @@
 - **How:** Added `IsDrawingZone` + `ToggleDrawZoneCommand` to `MapViewModel`. `OnLeftMouseClick` now appends click coordinates to `CombatZone.Vertices` when drawing mode is active. Added `Zone` property to `AICombatZoneMapViewModel`. Added `Draw Zone` button on `Map.xaml`.
 - **Files:** `MapViewModel.cs`, `AICombatZoneMapViewModel.cs`, `Map.xaml`.
 
+### Fix: Polygon Vertices Rendering on Map
+- **What:** Polygon zone now updates immediately when adding vertices via click-draw; yellow vertex dots appear on map; polygon lines render.
+- **How:** Added `Vertices.CollectionChanged` handler in `AICombatZoneMapViewModel`. Added `ItemsControl` with yellow `Ellipse` dots bound to `ScreenVertices` inside `Map.xaml`.
+- **Files:** `AICombatZoneMapViewModel.cs`, `Map.xaml`.
+
+### Feature: Mob Aggro Radius Toggle
+- **What:** Map now shows red aggro circles around aggressive mobs when enabled.
+- **How:** Added `ShowMobAggro` + `ToggleShowMobAggroCommand` to `MapViewModel`. Replaced `DataTrigger` with `MultiDataTrigger` on `CreatureAggroRadius` — visible only if both `IsAggressive=True` AND `ShowMobAggro=True`. Added `CheckBox` on map.
+- **Files:** `MapViewModel.cs`, `Map.xaml`.
+

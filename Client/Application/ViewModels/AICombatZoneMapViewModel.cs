@@ -26,9 +26,15 @@ namespace Client.Application.ViewModels
 
             hero.Transform.Position.PropertyChanged += HeroPosition_PropertyChanged;
             combatZone.PropertyChanged += CombatZone_PropertyChanged;
+            combatZone.Vertices.CollectionChanged += Vertices_CollectionChanged;
         }
 
         private void CombatZone_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            OnPropertyChanged("ScreenVertices");
+        }
+
+        private void Vertices_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             OnPropertyChanged("ScreenVertices");
         }

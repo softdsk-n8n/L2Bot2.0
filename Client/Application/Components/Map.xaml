@@ -52,6 +52,24 @@
                 Fill="#1100ff00" 
                 Stroke="#3300ff00"
                 Points="{Binding ScreenVertices, Converter={StaticResource PointsConverter}}" />
+            <ItemsControl ItemsSource="{Binding ScreenVertices}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}" />
+                        <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Ellipse Width="6" Height="6" Fill="Yellow" Stroke="Black" StrokeThickness="1" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
         <ItemsControl ItemsSource="{Binding Path=Creatures}">
             <ItemsControl.ItemsPanel>
@@ -62,7 +80,7 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Grid>
-                        <Path x:Name="CreatureAggroRadius" StrokeThickness="2" Visibility="Hidden" Fill="#11ff0000" Stroke="#33ff0000">
+                        <Path x:Name="CreatureAggroRadius" StrokeThickness="2" Fill="#11ff0000" Stroke="#33ff0000">
                             <Path.Data>
                                 <EllipseGeometry 
                                     RadiusX="{Binding AggroRadius,Mode=OneWay}" 
@@ -71,12 +89,23 @@
                             <Path.RenderTransform>
                                 <TranslateTransform X="{Binding Position.X,Mode=OneWay}" Y="{Binding Position.Y,Mode=OneWay}"/>
                             </Path.RenderTransform>
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsAggressive,Mode=OneWay}" Value="True" />
+                                                <Condition Binding="{Binding DataContext.ShowMobAggro, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
                         </Path>
                     </Grid>
                     <DataTemplate.Triggers>
-                        <DataTrigger Binding="{Binding IsAggressive,Mode=OneWay}" Value="True">
-                            <Setter TargetName="CreatureAggroRadius" Property="Visibility" Value="Visible" />
-                        </DataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -308,5 +337,6 @@
             </Grid>
         </StackPanel>
         <Button Content="{Binding DrawZoneButtonText}" Command="{Binding ToggleDrawZoneCommand}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,40,0,0" Opacity="0.9" />
+        <CheckBox Content="Show Aggro" IsChecked="{Binding ShowMobAggro}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,65,0,0" Foreground="White" Opacity="0.9" />
     </Grid>
 </ContentControl>
