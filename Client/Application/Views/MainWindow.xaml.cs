@@ -36,6 +36,18 @@ namespace Client.Application.Views
             this.mainViewModel = mainViewModel;
             this.aiConfigViewModel = aiConfigViewModel;
             aiConfigView = new AIConfig(aiConfigViewModel);
+
+            // Auto-scroll chat to bottom when new messages arrive
+            mainViewModel.ChatMessages.CollectionChanged += (_, _) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (listBox.Items.Count > 0)
+                    {
+                        listBox.ScrollIntoView(listBox.Items[listBox.Items.Count - 1]);
+                    }
+                }));
+            };
         }
 
         private void AIConfig_Click(object sender, RoutedEventArgs e)

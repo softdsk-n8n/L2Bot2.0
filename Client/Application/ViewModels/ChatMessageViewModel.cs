@@ -1,4 +1,5 @@
 ﻿using Client.Domain.Enums;
+using Client.Domain.Service;
 using Client.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,16 @@ namespace Client.Application.ViewModels
         {
             get
             {
-                return (message.Name != "" ? message.Name + ": " : "") + message.Text;
+                string text;
+                if (message.Channel == ChatChannelEnum.Announcement)
+                {
+                    text = SystemMessageResolver.Resolve(message.ObjectId);
+                }
+                else
+                {
+                    text = message.Text;
+                }
+                return (message.Name != "" ? message.Name + ": " : "") + text;
             }
         }
 

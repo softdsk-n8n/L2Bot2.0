@@ -71,6 +71,7 @@ namespace Client.Application.ViewModels
         public float AggroRadius => creature.AggroRadius / scale;
         public bool IsAttacker => hero.AttackerIds.Contains(creature.Id);
         public bool IsDead => creature.VitalStats.IsDead;
+        public bool IsSweepable => creature.VitalStats.IsDead && creature.IsHostile;
         public bool IsHostile => creature.IsHostile;
         public ICommand MouseLeftClickCommand { get; }
         public ICommand MouseLeftDoubleClickCommand { get; }

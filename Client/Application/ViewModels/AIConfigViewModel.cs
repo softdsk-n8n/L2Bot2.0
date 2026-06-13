@@ -144,6 +144,18 @@ namespace Client.Application.ViewModels
         public byte MaxPassableHeight { get => maxPassableHeight; set { if (value != maxPassableHeight) { maxPassableHeight = value; OnPropertyChanged(); } } }
         public short PickupRadius { get => pickupRadius; set { if (value != pickupRadius) { pickupRadius = value; OnPropertyChanged(); } } }
 
+        // Spoil / Sweep bindings
+        public bool SpoilIfPossible { get => spoilIfPossible; set { if (value != spoilIfPossible) { spoilIfPossible = value; OnPropertyChanged(); } } }
+        public bool SpoilIsPriority { get => spoilIsPriority; set { if (value != spoilIsPriority) { spoilIsPriority = value; OnPropertyChanged(); } } }
+        public byte SweepAttemptsCount { get => sweepAttemptsCount; set { if (value != sweepAttemptsCount) { sweepAttemptsCount = value; OnPropertyChanged(); } } }
+        public int SweepDropDelayMs { get => sweepDropDelayMs; set { if (value != sweepDropDelayMs) { sweepDropDelayMs = value; OnPropertyChanged(); } } }
+        public uint SpoilSkillId { get => spoilSkillId; set { if (value != spoilSkillId) { spoilSkillId = value; OnPropertyChanged(); } } }
+        public uint SweeperSkillId { get => sweeperSkillId; set { if (value != sweeperSkillId) { sweeperSkillId = value; OnPropertyChanged(); } } }
+        public ObservableCollection<ObjectInfo> ExcludedSpoilMobs { get; set; } = new ObservableCollection<ObjectInfo>();
+        public ObservableCollection<ObjectInfo> SelectedExcludedSpoilMobs { get; set; } = new ObservableCollection<ObjectInfo>();
+        public ObservableCollection<ObjectInfo> IncludedSpoilMobs { get; set; } = new ObservableCollection<ObjectInfo>();
+        public ObservableCollection<ObjectInfo> SelectedIncludedSpoilMobs { get; set; } = new ObservableCollection<ObjectInfo>();
+
         public void LoadConfig()
         {
             LoadConfigFrom(config);
@@ -184,6 +196,13 @@ namespace Client.Application.ViewModels
             DelevelingSkillId = config.Deleveling.SkillId;
             MaxPassableHeight = config.Combat.MaxPassableHeight;
             PickupRadius = config.Combat.PickupRadius;
+
+            SpoilIfPossible = config.Combat.SpoilIfPossible;
+            SpoilIsPriority = config.Combat.SpoilIsPriority;
+            SweepAttemptsCount = config.Combat.SweepAttemptsCount;
+            SweepDropDelayMs = config.Combat.SweepDropDelayMs;
+            SpoilSkillId = config.Combat.SpoilSkillId;
+            SweeperSkillId = config.Combat.SweeperSkillId;
         }
 
         private void SaveConfig()
@@ -220,6 +239,14 @@ namespace Client.Application.ViewModels
             config.Deleveling.SkillId = DelevelingSkillId;
             config.Combat.MaxPassableHeight = MaxPassableHeight;
             config.Combat.PickupRadius = PickupRadius;
+
+            config.Combat.SpoilIfPossible = SpoilIfPossible;
+            config.Combat.SpoilIsPriority = SpoilIsPriority;
+            config.Combat.SweepAttemptsCount = SweepAttemptsCount;
+            config.Combat.SweepDropDelayMs = SweepDropDelayMs;
+            config.Combat.SpoilSkillId = SpoilSkillId;
+            config.Combat.SweeperSkillId = SweeperSkillId;
+
             SaveCollections();
         }
 
@@ -258,6 +285,16 @@ namespace Client.Application.ViewModels
             loadCollection(ExcludedItems, SelectedExcludedItems, config.Combat.ExcludedItemIdsToPickup);
             loadCollection(IncludedItems, SelectedIncludedItems, config.Combat.IncludedItemIdsToPickup);
 
+            ExcludedSpoilMobs.Clear();
+            npcInfoHelper.GetAllNpc().ForEach(n => ExcludedSpoilMobs.Add(n));
+            SelectedExcludedSpoilMobs.Clear();
+            IncludedSpoilMobs.Clear();
+            npcInfoHelper.GetAllNpc().ForEach(n => IncludedSpoilMobs.Add(n));
+            SelectedIncludedSpoilMobs.Clear();
+
+            loadCollection(ExcludedSpoilMobs, SelectedExcludedSpoilMobs, config.Combat.ExcludedSpoilMobs);
+            loadCollection(IncludedSpoilMobs, SelectedIncludedSpoilMobs, config.Combat.IncludedSpoilMobs);
+
             CombatSkills.RemoveAll();
             config.Combat.SkillConditions.ForEach(x =>
             {
@@ -280,6 +317,9 @@ namespace Client.Application.ViewModels
 
             config.Combat.ExcludedItemIdsToPickup = SelectedExcludedItems.ToDictionary(x => x.Id, x => true);
             config.Combat.IncludedItemIdsToPickup = SelectedIncludedItems.ToDictionary(x => x.Id, x => true);
+
+            config.Combat.ExcludedSpoilMobs = SelectedExcludedSpoilMobs.ToDictionary(x => x.Id, x => true);
+            config.Combat.IncludedSpoilMobs = SelectedIncludedSpoilMobs.ToDictionary(x => x.Id, x => true);
 
             config.Combat.SkillConditions = CombatSkills.Select(x => new Config.SkillCondition()
             {
@@ -402,5 +442,11 @@ namespace Client.Application.ViewModels
         private uint delevelingSkillId = 0;
         private byte? mobLevelUpperLimit = null;
         private short pickupRadius = 0;
+        private bool spoilIfPossible = false;
+        private bool spoilIsPriority = false;
+        private byte sweepAttemptsCount = 3;
+        private int sweepDropDelayMs = 1500;
+        private uint spoilSkillId = 0;
+        private uint sweeperSkillId = 0;
     }
 }

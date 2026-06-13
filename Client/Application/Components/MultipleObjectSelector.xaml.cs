@@ -1,4 +1,4 @@
-﻿using Client.Domain.Helpers;
+using Client.Domain.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -45,64 +45,157 @@ namespace Client.Application.Components
             nameof(RemoveItemCommand),
             typeof(MultipleObjectSelector)
         );
-        public static RoutedUICommand SearchSourceCommand { get; } = new RoutedUICommand(
-            "Search in source",
-            nameof(SearchSourceCommand),
-            typeof(MultipleObjectSelector)
-        );
-        public static RoutedUICommand SearchTargetCommand { get; } = new RoutedUICommand(
-            "Search in target",
-            nameof(SearchTargetCommand),
-            typeof(MultipleObjectSelector)
-        );
-
 
         public MultipleObjectSelector()
         {
             InitializeComponent();
             CommandBindings.Add(new CommandBinding(AddItemCommand, AddItem));
             CommandBindings.Add(new CommandBinding(RemoveItemCommand, RemoveItem));
-            CommandBindings.Add(new CommandBinding(SearchSourceCommand, SearchSource));
-            CommandBindings.Add(new CommandBinding(SearchTargetCommand, SearchTarget));
         }
 
         private void AddItem(object sender, ExecutedRoutedEventArgs e)
         {
-            var item = e.Parameter as ObjectInfo;
-            if (item != null)
+            try
             {
-                Source.Remove(item);
-                Target.Add(item);
+                var item = e.Parameter as ObjectInfo;
+                if (item != null)
+                {
+                    Source.Remove(item);
+                    Target.Add(item);
+                    RefreshViews();
+                }
+            }
+            catch
+            {
+                // ignore
             }
         }
 
         private void RemoveItem(object sender, ExecutedRoutedEventArgs e)
         {
-            var item = e.Parameter as ObjectInfo;
-            if (item != null)
+            try
             {
-                Target.Remove(item);
-                Source.Add(item);
+                var item = e.Parameter as ObjectInfo;
+                if (item != null)
+                {
+                    Target.Remove(item);
+                    Source.Add(item);
+                    RefreshViews();
+                }
+            }
+            catch
+            {
+                // ignore
             }
         }
 
-        private void SearchSource(object sender, ExecutedRoutedEventArgs e)
+        private void sourceSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            var searchPredicate = (string)e.Parameter ?? null;
-
-            if (searchPredicate != null)
+            try
             {
-                CollectionViewSource.GetDefaultView(Source).Filter = item => (item as ObjectInfo)?.Name.Contains(searchPredicate, StringComparison.OrdinalIgnoreCase) ?? false;
+                var view = Resources["sourceView"] as CollectionViewSource;
+                if (view?.View != null)
+                {
+                    view.View.Refresh();
+                }
+            }
+            catch
+            {
+                // ignore
             }
         }
 
-        private void SearchTarget(object sender, ExecutedRoutedEventArgs e)
+        private void targetSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            var searchPredicate = (string)e.Parameter ?? null;
-
-            if (searchPredicate != null)
+            try
             {
-                CollectionViewSource.GetDefaultView(Target).Filter = item => (item as ObjectInfo)?.Name.Contains(searchPredicate, StringComparison.OrdinalIgnoreCase) ?? false;
+                var view = Resources["targetView"] as CollectionViewSource;
+                if (view?.View != null)
+                {
+                    view.View.Refresh();
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private string SourceFilterText
+        {
+            get { return sourceSearch?.Text ?? ""; }
+        }
+
+        private string TargetFilterText
+        {
+            get { return targetSearch?.Text ?? ""; }
+        }
+
+        private void SourceView_Filter(object sender, FilterEventArgs e)
+        {
+            try
+            {
+                var text = SourceFilterText;
+                if (string.IsNullOrEmpty(text))
+                {
+                    e.Accepted = true;
+                    return;
+                }
+
+                if (e.Item is ObjectInfo info && info.Name != null)
+                {
+                    e.Accepted = info.Name.Contains(text, StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    e.Accepted = false;
+                }
+            }
+            catch
+            {
+                e.Accepted = true;
+            }
+        }
+
+        private void TargetView_Filter(object sender, FilterEventArgs e)
+        {
+            try
+            {
+                var text = TargetFilterText;
+                if (string.IsNullOrEmpty(text))
+                {
+                    e.Accepted = true;
+                    return;
+                }
+
+                if (e.Item is ObjectInfo info && info.Name != null)
+                {
+                    e.Accepted = info.Name.Contains(text, StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    e.Accepted = false;
+                }
+            }
+            catch
+            {
+                e.Accepted = true;
+            }
+        }
+
+        private void RefreshViews()
+        {
+            try
+            {
+                var srcView = Resources["sourceView"] as CollectionViewSource;
+                srcView?.View?.Refresh();
+
+                var tgtView = Resources["targetView"] as CollectionViewSource;
+                tgtView?.View?.Refresh();
+            }
+            catch
+            {
+                // ignore
             }
         }
     }

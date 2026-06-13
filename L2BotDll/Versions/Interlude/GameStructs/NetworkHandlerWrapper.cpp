@@ -4,6 +4,9 @@
 #include "ProcessManipulation.h"
 #include "Domain/Services/ServiceLocator.h"
 #include "Domain/Exceptions.h"
+#include "Domain/Events/ChatMessageCreatedEvent.h"
+#include "Domain/DTO/ChatMessageData.h"
+#include "Domain/Enums/ChatChannelEnum.h"
 
 using namespace L2Bot::Domain;
 
@@ -254,6 +257,27 @@ namespace Interlude
 
 	int __fastcall NetworkHandlerWrapper::__AddNetworkQueue_hook(NetworkHandler* This, int, L2::NetworkPacket* packet)
 	{
+		if (packet && packet->id == static_cast<unsigned char>(L2::NetworkPacketId::SYSTEM_MESSAGE))
+		{
+			const auto sysMsg = reinterpret_cast<L2::SystemMessagePacket*>(packet);
+			const auto msgId = sysMsg->GetMessageId();
+
+			std::wstring text = L"System message #" + std::to_wstring(msgId);
+
+			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
+				Events::ChatMessageCreatedEvent{
+					DTO::ChatMessageData{
+						msgId,
+						static_cast<uint8_t>(Enums::ChatChannelEnum::announcement),
+						L"System",
+						text
+					}
+				}
+			);
+
+			Services::ServiceLocator::GetInstance().GetLogger()->Info(L"System message: {}", text);
+		}
+
 		return (*__AddNetworkQueue)(This, packet);
 	}
 }

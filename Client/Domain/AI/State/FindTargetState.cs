@@ -18,6 +18,8 @@ namespace Client.Domain.AI.State
 
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
         {
+            ai.ResetSpoilState();
+
             uint? targetId = hero.AttackerIds.Count > 0 ? hero.AttackerIds.First() : null;
 
             if (targetId == null)

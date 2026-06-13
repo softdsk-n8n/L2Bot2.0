@@ -1,6 +1,7 @@
 ﻿using Client.Domain.AI.Combat;
 using Client.Domain.Entities;
 using Client.Domain.Service;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -25,12 +26,33 @@ namespace Client.Domain.AI.State
             var drops = Helper.GetDropByConfig(worldHandler, config, hero);
             for (var i = drops.Count - 1; i >= 0; i--)
             {
-                if (pickupAttempts.ContainsKey(drops[0].Id) && pickupAttempts[drops[0].Id] > config.Combat.PickupAttemptsCount)
+                if (pickupAttempts.ContainsKey(drops[i].Id) && pickupAttempts[drops[i].Id] > config.Combat.PickupAttemptsCount)
                 {
                     drops.RemoveAt(i);
                 }
             }
             return drops;
+        }
+
+        /// <summary>
+        /// True when Pickup has been active long enough that we can give up
+        /// waiting for drops to appear (e.g. after sweep, server needs a moment).
+        /// Uses configurable SweepDropDelayMs from config.
+        /// </summary>
+        public bool CanGiveUp(WorldHandler worldHandler, Config config)
+        {
+            var delayMs = config.Combat.SweepDropDelayMs > 0 ? config.Combat.SweepDropDelayMs : 1500;
+            var elapsed = (DateTime.Now - _enterTime).TotalMilliseconds;
+            var canGiveUp = elapsed > delayMs;
+            DebugLogger.Log($"PickupState.CanGiveUp: elapsed={elapsed:F0}ms, delay={delayMs}ms => {canGiveUp}");
+            return canGiveUp;
+        }
+
+        protected override void DoOnEnter(WorldHandler worldHandler, Config config, Hero hero)
+        {
+            _enterTime = DateTime.Now;
+            pickupAttempts.Clear();
+            DebugLogger.Log("PickupState: entered, waiting for drops...");
         }
 
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
@@ -56,6 +78,7 @@ namespace Client.Domain.AI.State
             pickupAttempts.Clear();
         }
 
+        private DateTime _enterTime = DateTime.MinValue;
         private Dictionary<uint, short> pickupAttempts = new Dictionary<uint, short>();
     }
 }

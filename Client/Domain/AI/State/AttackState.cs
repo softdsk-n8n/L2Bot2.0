@@ -25,6 +25,16 @@ namespace Client.Domain.AI.State
                 return;
             }
 
+            // Save target ID while we still have a valid target.
+            // DoOnLeave may see hero.Target == null (server clears it on death)
+            // so we also track it here proactively.
+            var ai = (AI)this.ai;
+            if (ai.LastTargetId == 0 || ai.LastTargetId != hero.Target.Id)
+            {
+                ai.LastTargetId = hero.Target.Id;
+                DebugLogger.Log($"AttackState.DoExecute: saved LastTargetId={hero.Target.Id}");
+            }
+
             if (config.Combat.DontAttackPlayers && hero.Target.Type != CreatureTypeEnum.NPC)
             {
                 return;
@@ -53,6 +63,15 @@ namespace Client.Domain.AI.State
         protected override void DoOnLeave(WorldHandler worldHandler, Config config, Hero hero)
         {
             // Intentionally left empty — we do NOT touch auto-shots at all.
+            // If the target died and was spoiled, remember its ID for SweepState
+            if (hero.Target != null && hero.Target.VitalStats.IsDead)
+            {
+                var ai = (AI)this.ai;
+                if (ai.SpoilConfirmed)
+                {
+                    ai.LastTargetId = hero.Target.Id;
+                }
+            }
             lastAttackTargetId = 0;
         }
 

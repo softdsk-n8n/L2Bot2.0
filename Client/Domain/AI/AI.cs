@@ -1,11 +1,14 @@
 ﻿using Client.Domain.AI.State;
 using Client.Domain.Common;
 using Client.Domain.Entities;
+using Client.Domain.Enums;
 using Client.Domain.Events;
 using Client.Domain.Service;
+using Client.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -14,7 +17,7 @@ using System.Windows.Input;
 
 namespace Client.Domain.AI
 {
-    public class AI : ObservableObject, AIInterface
+    public class AI : ObservableObject, AIInterface, EventHandlerInterface<ChatMessageCreatedEvent>
     {
         public AI(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, TransitionBuilderLocator locator)
         {
@@ -45,6 +48,44 @@ namespace Client.Domain.AI
 
         public TypeEnum Type { get { return type; } set { if (type != value) { type = value; ResetState(); OnPropertyChanged(); } } }
         public BaseState.Type CurrentState { get { return currentState; } private set { if (currentState != value) { currentState = value; OnPropertyChanged(); } } }
+
+        public bool SpoilConfirmed { get; set; } = false;
+        public bool SweepConfirmed { get; set; } = false;
+        public uint SpoilAttemptedTargetId { get; set; } = 0;
+        public uint LastTargetId { get; set; } = 0;
+
+        public void Handle(ChatMessageCreatedEvent @event)
+        {
+            DebugLogger.Log($"AI.Handle: channel={@event.Message.Channel}, objectId={@event.Message.ObjectId}");
+
+            if (@event.Message.Channel != ChatChannelEnum.Announcement)
+            {
+                DebugLogger.Log($"AI.Handle: ignored — not Announcement");
+                return;
+            }
+
+            var msgId = @event.Message.ObjectId;
+
+            switch (msgId)
+            {
+                case 612: // SPOIL_SUCCESS
+                case 357: // ALREADY_SPOILED
+                    SpoilConfirmed = true;
+                    DebugLogger.Log($"AI.Handle: SpoilConfirmed=true (msgId={msgId})");
+                    break;
+
+                case 608: // SWEEP_SUCCESS
+                case 609: // SWEEP_SUCCESS2
+                case 343: // SWEEPER_FAILED
+                    SweepConfirmed = true;
+                    DebugLogger.Log($"AI.Handle: SweepConfirmed=true (msgId={msgId})");
+                    break;
+
+                default:
+                    DebugLogger.Log($"AI.Handle: unhandled Announcement msgId={msgId}");
+                    break;
+            }
+        }
 
         public async Task Update()
         {
@@ -92,9 +133,18 @@ namespace Client.Domain.AI
             return asyncPathMover;
         }
 
+        public void ResetSpoilState()
+        {
+            SpoilConfirmed = false;
+            SweepConfirmed = false;
+            SpoilAttemptedTargetId = 0;
+            LastTargetId = 0;
+        }
+
         private void ResetState()
         {
             CurrentState = BaseState.Type.Idle;
+            ResetSpoilState();
         }
 
         private readonly WorldHandler worldHandler;

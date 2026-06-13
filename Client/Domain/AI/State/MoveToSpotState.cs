@@ -27,6 +27,12 @@ namespace Client.Domain.AI.State
                 return;
             }
 
+            if (asyncPathMover.IsStuck)
+            {
+                // Let the state machine transition away from MoveToSpot via Combat TransitionBuilder
+                return;
+            }
+
             asyncPathMover.MoveAsync(new ValueObjects.Vector3(
                 config.Combat.Zone.Center.X,
                 config.Combat.Zone.Center.Y,

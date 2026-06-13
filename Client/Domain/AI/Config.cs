@@ -42,6 +42,15 @@ namespace Client.Domain.AI
             public Dictionary<uint, bool> ExcludedItemIdsToPickup { get; set; } = new Dictionary<uint, bool>();
             public Dictionary<uint, bool> IncludedItemIdsToPickup { get; set; } = new Dictionary<uint, bool>();
             public short PickupRadius = 200;
+
+            public bool SpoilIfPossible { get; set; } = false;
+            public bool SpoilIsPriority { get; set; } = false;
+            public uint SpoilSkillId { get; set; } = 0;
+            public uint SweeperSkillId { get; set; } = 0;
+            public byte SweepAttemptsCount { get; set; } = 3;
+            public int SweepDropDelayMs { get; set; } = 1500;
+            public Dictionary<uint, bool> ExcludedSpoilMobs { get; set; } = new Dictionary<uint, bool>();
+            public Dictionary<uint, bool> IncludedSpoilMobs { get; set; } = new Dictionary<uint, bool>();
         }
 
         public class DelevelingSection

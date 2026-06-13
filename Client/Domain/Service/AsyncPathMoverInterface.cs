@@ -16,6 +16,7 @@ namespace Client.Domain.Service
         public Task<bool> MoveAsync(Vector3 location, ushort maxPassableHeight);
         public Task<bool> MoveAsync(Vector3 location);
         public bool IsLocked { get; }
+        public bool IsStuck { get; }
         public void Unlock();
     }
 }

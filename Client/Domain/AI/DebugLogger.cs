@@ -31,6 +31,6 @@ namespace Client.Domain.AI
             });
         }
 
-        public static bool Enabled { get; set; } = false;
+        public static bool Enabled { get; set; } = true;
     }
 }

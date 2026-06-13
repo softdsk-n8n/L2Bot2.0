@@ -23,7 +23,9 @@ namespace Client.Domain.AI
                 { BaseState.Type.Rest, new RestState(ai) },
                 { BaseState.Type.MoveToSpot, new MoveToSpotState(ai) },
                 { BaseState.Type.AttackGuard, new AttackGuardState(ai) },
-                { BaseState.Type.FindGuard, new FindGuardState(ai) }
+                { BaseState.Type.FindGuard, new FindGuardState(ai) },
+                { BaseState.Type.Spoiling, new SpoilState(ai) },
+                { BaseState.Type.Sweeping, new SweepState(ai) }
             };
         }
     }

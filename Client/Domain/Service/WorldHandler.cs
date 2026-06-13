@@ -272,6 +272,11 @@ namespace Client.Domain.Service
             return skills.GetValueOrDefault(id);
         }
 
+        public List<Skill> GetAllSkills()
+        {
+            return skills.Values.ToList();
+        }
+
         public ItemInterface? GetItemById(uint id)
         {
             return items.Select(x => x.Value)

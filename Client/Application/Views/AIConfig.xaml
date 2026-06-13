@@ -242,6 +242,7 @@
                                         <RowDefinition Height="Auto"></RowDefinition>
                                         <RowDefinition Height="Auto"></RowDefinition>
                                         <RowDefinition Height="Auto"></RowDefinition>
+                                        <RowDefinition Height="Auto"></RowDefinition>
                                     </Grid.RowDefinitions>
                                     <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" IsChecked="{Binding SpoilIfPossible}">Spoil if possible</CheckBox>
                                     <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" IsChecked="{Binding SpoilIsPriority}">Spoil is priority</CheckBox>
@@ -253,25 +254,33 @@
                                             </TextBox.Text>
                                         </TextBox>
                                     </StackPanel>
+                                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
+                                        <Label>Sweep→Pickup delay (ms):</Label>
+                                        <TextBox Width="100" HorizontalAlignment="Left">
+                                            <TextBox.Text>
+                                                <Binding Path="SweepDropDelayMs" UpdateSourceTrigger="PropertyChanged"/>
+                                            </TextBox.Text>
+                                        </TextBox>
+                                    </StackPanel>
                                     <components:MultipleObjectSelector
-                                        Grid.Row="3"
+                                        Grid.Row="4"
                                         Grid.Column="0"
                                         Source="{Binding ExcludedSpoilMobs}"
                                         Target="{Binding SelectedExcludedSpoilMobs}"
                                         Header="Excluded:"/>
                                     <components:MultipleObjectSelector
-                                        Grid.Row="3"
+                                        Grid.Row="4"
                                         Grid.Column="1"
                                         Source="{Binding IncludedSpoilMobs}"
                                         Target="{Binding SelectedIncludedSpoilMobs}"
                                         Header="Included:"/>
-                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
                                         <components:ObjectSelector
                                             Source="{Binding Skills}"
                                             SelectedValue="{Binding SpoilSkillId, Mode=TwoWay}"
                                             Header="Spoil skill:"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
+                                    <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2">
                                         <components:ObjectSelector
                                             Source="{Binding Skills}"
                                             SelectedValue="{Binding SweeperSkillId, Mode=TwoWay}"

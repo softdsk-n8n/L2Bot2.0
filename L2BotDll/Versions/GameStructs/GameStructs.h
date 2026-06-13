@@ -167,8 +167,13 @@ namespace L2
 	{
 		enum class Type
 		{
+			SWEEPER_FAILED = 343,
 			ALREADY_SPOILED = 357,
+			SWEEP_SUCCESS = 608,
+			SWEEP_SUCCESS2 = 609,
 			SPOIL_SUCCESS = 612,
+			CANNOT_SPOIL = 661,
+			NO_SWEEPER_PRIORITY = 683,
 		};
 
 		const uint32_t GetMessageId() const

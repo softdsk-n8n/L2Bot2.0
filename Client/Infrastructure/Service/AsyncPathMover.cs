@@ -30,10 +30,13 @@ namespace Client.Infrastructure.Service
         public PathfinderInterface Pathfinder => pathfinder;
         public ObservableCollection<PathSegment> Path { get; private set; } = new ObservableCollection<PathSegment>();
         public bool IsLocked { get; private set; } = false;
+        public bool IsStuck { get; private set; } = false;
 
         public void Unlock()
         {
             IsLocked = false;
+            IsStuck = false;
+            consecutiveFailures = 0;
             if (cancellationTokenSource != null)
             {
                 cancellationTokenSource.Cancel();
@@ -59,26 +62,53 @@ namespace Client.Infrastructure.Service
             {
                 return await Task.Run(async () =>
                 {
-                    Debug.WriteLine("Find path started");
-                    FindPath(location, maxPassableHeight);
-                    Debug.WriteLine("Find path finished");
+                    var finalDestination = location;
+                    var attemptsRemaining = MAX_RETRY_ATTEMPTS;
 
-
-                    foreach (var node in Path.ToList())
+                    while (attemptsRemaining > 0)
                     {
-                        worldHandler.RequestMoveToLocation(node.To);
+                        Debug.WriteLine($"Find path started (attempt {MAX_RETRY_ATTEMPTS - attemptsRemaining + 1})");
+                        FindPath(finalDestination, maxPassableHeight);
+                        Debug.WriteLine("Find path finished");
 
-                        var reached = await WaitForNodeReaching(cancellationToken, node);
-                        if (!reached)
+                        var retrying = false;
+                        foreach (var node in Path.ToList())
                         {
-                            IsLocked = false;
-                            return false;
+                            worldHandler.RequestMoveToLocation(node.To);
+
+                            var reached = await WaitForNodeReaching(cancellationToken, node);
+                            if (!reached)
+                            {
+                                attemptsRemaining--;
+                                if (attemptsRemaining > 0)
+                                {
+                                    Debug.WriteLine("Node failed, recalculating path...");
+                                    retrying = true;
+                                    Path.Clear();
+                                    break;
+                                }
+                                else
+                                {
+                                    IsLocked = false;
+                                    IsStuck = true;
+                                    consecutiveFailures++;
+                                    Debug.WriteLine("All path retries exhausted");
+                                    return false;
+                                }
+                            }
+
+                            Path.Remove(node);
                         }
 
-                        Path.Remove(node);
+                        if (!retrying)
+                        {
+                            // Path completed successfully
+                            break;
+                        }
                     }
 
                     IsLocked = false;
+                    consecutiveFailures = 0;
                     return true;
                 }, cancellationToken);
             }
@@ -94,6 +124,9 @@ namespace Client.Infrastructure.Service
         {
             return await MoveAsync(location, maxPassableHeight);
         }
+
+        private const int MAX_RETRY_ATTEMPTS = 3;
+        private int consecutiveFailures = 0;
 
         public AsyncPathMover(WorldHandler worldHandler, PathfinderInterface pathfinder, double nodeWaitingTime, int nodeDistanceTolerance, int nextNodeDistanceTolerance, ushort maxPassableHeight)
         {

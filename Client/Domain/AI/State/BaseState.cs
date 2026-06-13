@@ -22,12 +22,19 @@ namespace Client.Domain.AI.State
             Rest,
             MoveToSpot,
             AttackGuard,
-            FindGuard
+            FindGuard,
+            Spoiling,
+            Sweeping,
         }
 
         public BaseState(AI ai)
         {
             this.ai = ai;
+        }
+
+        public AI GetAI()
+        {
+            return ai;
         }
 
         public void Execute()
@@ -80,6 +87,6 @@ namespace Client.Domain.AI.State
 
         }
 
-        private readonly AI ai;
+        protected readonly AI ai;
     }
 }

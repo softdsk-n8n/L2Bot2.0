@@ -156,6 +156,8 @@ namespace Client
             var configViewModel = serviceProvider.GetRequiredService<AIConfigViewModel>();
             eventBus.Subscrbe((EventHandlerInterface<HeroCreatedEvent>)configViewModel);
             eventBus.Subscrbe((EventHandlerInterface<HeroDeletedEvent>)configViewModel);
+
+            eventBus.Subscrbe((EventHandlerInterface<ChatMessageCreatedEvent>)ai);
         }
 
         private void OnMessage(string args)

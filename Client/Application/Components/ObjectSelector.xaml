@@ -19,6 +19,7 @@
             DisplayMemberPath="Name"
             ItemsSource="{Binding Source,ElementName=root}"
             SelectedValue="{Binding SelectedValue,ElementName=root}"
+            IsEditable="True"
             >
             <ComboBox.ItemsPanel>
                 <ItemsPanelTemplate>
