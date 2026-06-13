@@ -55,6 +55,11 @@ namespace L2Bot::Domain::Services
 			return result;
 		}
 
+		void Reset()
+		{
+			m_Hashes.clear();
+		}
+
 	private:
 		const std::unordered_map<uint32_t, Enums::EntityStateEnum> GetStates(const std::wstring& name, const std::unordered_map<uint32_t, std::shared_ptr<Entities::EntityInterface>>& entities)
 		{

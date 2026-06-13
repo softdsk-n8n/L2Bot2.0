@@ -73,15 +73,22 @@ namespace L2Bot::Domain::Services
 
 					if (m_Transport.IsConnected())
 					{
+						size_t total = 0;
 						for (const auto& message : messages)
 						{
-							m_Transport.Send(
-								m_Serializer.Serialize(message)
-							);
+							const auto serialized = m_Serializer.Serialize(message);
+							m_Transport.Send(serialized);
+							total++;
+							if (total <= 3) {
+								ServiceLocator::GetInstance().GetLogger()->Info(L"Sending: {}", serialized.substr(0, 200));
+							}
+						}
+						if (total > 0) {
+							ServiceLocator::GetInstance().GetLogger()->Info(L"Sent {} messages total", total);
 						}
 					}
 
-					std::this_thread::sleep_for(std::chrono::milliseconds(50));
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				}
 				catch (const CriticalRuntimeException& e)
 				{
@@ -164,10 +171,13 @@ namespace L2Bot::Domain::Services
 
 		void Invalidate()
 		{
+			ServiceLocator::GetInstance().GetLogger()->Info(L"Invalidate() called - resetting builder and repos");
+			m_OutgoingMessageBuilder.Reset();
 			for (const auto& kvp : m_Repositories)
 			{
 				kvp.second.Reset();
 			}
+			ServiceLocator::GetInstance().GetLogger()->Info(L"Invalidate() completed");
 		}
 
 	private:
