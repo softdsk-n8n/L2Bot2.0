@@ -18,11 +18,12 @@ namespace Interlude
 	public:
 		const std::unordered_map<std::uint32_t, std::shared_ptr<Entities::EntityInterface>> GetEntities() override
 		{
-			std::unique_lock<std::shared_timed_mutex>(m_Mutex);
-
 			const auto allItems = FindAllObjects<Item*>(m_Radius, [this](float_t radius, int32_t prevId) {
 				return m_NetworkHandler.GetNextItem(radius, prevId);
 			});
+
+			std::unique_lock<std::shared_timed_mutex> lock(m_Mutex);
+			// Phase 2: fast lock — only for m_Drops manipulation
 
 			std::unordered_map<std::uint32_t, std::shared_ptr<Entities::EntityInterface>> result;
 			for (const auto kvp : allItems) {
@@ -42,7 +43,7 @@ namespace Interlude
 
 		void Reset() override
 		{
-			std::shared_lock<std::shared_timed_mutex>(m_Mutex);
+			std::unique_lock<std::shared_timed_mutex> lock(m_Mutex);
 			m_Drops.clear();
 		}
 

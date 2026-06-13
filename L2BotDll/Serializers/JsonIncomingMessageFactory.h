@@ -26,6 +26,14 @@ public:
 		}
 		catch (json::exception& e)
 		{
+			// Fallback: if data is plain text (not JSON), try matching known commands
+			if (data == L"invalidate")
+			{
+				return Serializers::IncomingMessage
+				{
+					Serializers::IncomingMessage::Type::invalidate
+				};
+			}
 			return Serializers::IncomingMessage();
 		}
 	}

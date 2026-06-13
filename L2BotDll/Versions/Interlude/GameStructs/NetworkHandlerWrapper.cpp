@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "../../../Common/apihook.h"
 #include "NetworkHandlerWrapper.h"
-#include "Domain/Events/SpoiledEvent.h"
 #include "ProcessManipulation.h"
 #include "Domain/Services/ServiceLocator.h"
 #include "Domain/Exceptions.h"
@@ -255,16 +254,6 @@ namespace Interlude
 
 	int __fastcall NetworkHandlerWrapper::__AddNetworkQueue_hook(NetworkHandler* This, int, L2::NetworkPacket* packet)
 	{
-		if (packet->id == static_cast<int>(L2::NetworkPacketId::SYSTEM_MESSAGE)) {
-			L2::SystemMessagePacket* p = static_cast<L2::SystemMessagePacket*>(packet);
-			if (
-				p->GetMessageId() == static_cast<int>(L2::SystemMessagePacket::Type::SPOIL_SUCCESS) ||
-				p->GetMessageId() == static_cast<int>(L2::SystemMessagePacket::Type::ALREADY_SPOILED)
-				) {
-				Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(Events::SpoiledEvent{});
-			}
-		}
-
 		return (*__AddNetworkQueue)(This, packet);
 	}
 }

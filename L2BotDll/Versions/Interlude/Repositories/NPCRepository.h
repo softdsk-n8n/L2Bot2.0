@@ -5,7 +5,6 @@
 #include "../GameStructs/NetworkHandlerWrapper.h"
 #include "Domain/Repositories/EntityRepositoryInterface.h"
 #include "../Factories/NPCFactory.h"
-#include "Domain/Events/SpoiledEvent.h"
 #include "Domain/Events/CreatureDiedEvent.h"
 #include "../../GameStructs/FindObjectsTrait.h"
 #include "Domain/Services/ServiceLocator.h"
@@ -19,11 +18,15 @@ namespace Interlude
 	public:
 		const std::unordered_map<std::uint32_t, std::shared_ptr<Entities::EntityInterface>> GetEntities() override
 		{
-			std::unique_lock<std::shared_timed_mutex>(m_Mutex);
-
+			// Phase 1: walk game memory WITHOUT lock — this can take 100ms+ and
+			// blocking the game thread (which fires OnSpoiled / OnCreatureDied)
+			// during that window would freeze the game.
 			const auto allCreatures = FindAllObjects<User*>(m_Radius, [this](float_t radius, int32_t prevId) {
 				return m_NetworkHandler.GetNextCreature(radius, prevId);
 			});
+
+			// Phase 2: lock only for m_Npcs manipulation — fast path.
+			std::unique_lock<std::shared_timed_mutex> lock(m_Mutex);
 
 			std::unordered_map<std::uint32_t, std::shared_ptr<Entities::EntityInterface>> result;
 			for (const auto kvp : allCreatures) {
@@ -40,9 +43,6 @@ namespace Interlude
 					m_Factory.Update(m_Npcs[creature->objectId], creature);
 				}
 
-				const auto spoilState = m_Spoiled.find(creature->objectId) == m_Spoiled.end() ? Enums::SpoilStateEnum::none : m_Spoiled[creature->objectId];
-				m_Npcs[creature->objectId]->UpdateSpoilState(spoilState);
-
 				result[creature->objectId] = m_Npcs[creature->objectId];
 			}
 
@@ -51,15 +51,12 @@ namespace Interlude
 
 		void Reset() override
 		{
-			std::shared_lock<std::shared_timed_mutex>(m_Mutex);
+			std::unique_lock<std::shared_timed_mutex> lock(m_Mutex);
 			m_Npcs.clear();
 		}
 
 		void Init() override
 		{
-			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Subscribe(Events::SpoiledEvent::name, [this](const Events::Event& evt) {
-				OnSpoiled(evt);
-			});
 			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Subscribe(Events::CreatureDiedEvent::name, [this](const Events::Event& evt) {
 				OnCreatureDied(evt);
 			});
@@ -75,42 +72,12 @@ namespace Interlude
 		NPCRepository() = delete;
 		virtual ~NPCRepository() = default;
 
-		void OnSpoiled(const Events::Event& evt)
-		{
-			std::shared_lock<std::shared_timed_mutex>(m_Mutex);
-			if (evt.GetName() == Events::SpoiledEvent::name)
-			{
-				const auto casted = static_cast<const Events::SpoiledEvent&>(evt);
-				const auto hero = m_NetworkHandler.GetHero();
-				if (hero && hero->pawn && hero->pawn->lineagePlayerController)
-				{
-					const auto targetId = hero->pawn->lineagePlayerController->targetObjectId;
-					if (targetId)
-					{
-						m_Spoiled[targetId] = Enums::SpoilStateEnum::spoiled;
-					}
-				}
-			}
-		}
-
 		void OnCreatureDied(const Events::Event& evt)
 		{
-			std::shared_lock<std::shared_timed_mutex>(m_Mutex);
+			std::unique_lock<std::shared_timed_mutex> lock(m_Mutex);
 			if (evt.GetName() == Events::CreatureDiedEvent::name)
 			{
 				const auto casted = static_cast<const Events::CreatureDiedEvent&>(evt);
-				if (m_Spoiled.find(casted.GetCreatureId()) != m_Spoiled.end())
-				{
-					const auto isSweepable = casted.GetCreatureInfo()[4] != 0;
-					if (m_Spoiled[casted.GetCreatureId()] == Enums::SpoilStateEnum::spoiled && isSweepable)
-					{
-						m_Spoiled[casted.GetCreatureId()] = Enums::SpoilStateEnum::sweepable;
-					}
-					else
-					{
-						m_Spoiled[casted.GetCreatureId()] = Enums::SpoilStateEnum::none;
-					}
-				}
 				if (m_Npcs.find(casted.GetCreatureId()) != m_Npcs.end()) {
 					m_Npcs[casted.GetCreatureId()]->MarkAsDead();
 				}
@@ -119,7 +86,6 @@ namespace Interlude
 
 	private:
 		const NPCFactory& m_Factory;
-		std::map<uint32_t, Enums::SpoilStateEnum> m_Spoiled;
 		const NetworkHandlerWrapper& m_NetworkHandler;
 		const uint16_t m_Radius = 0;
 		std::shared_timed_mutex m_Mutex;
