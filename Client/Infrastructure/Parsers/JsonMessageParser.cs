@@ -42,6 +42,8 @@ namespace Client.Infrastructure.Parsers
                     return MessageTypeEnum.AbnormalEffect;
                 case "chat":
                     return MessageTypeEnum.Chat;
+                case "party":
+                    return MessageTypeEnum.Party;
             }
 
             return MessageTypeEnum.None;

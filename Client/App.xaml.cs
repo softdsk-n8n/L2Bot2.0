@@ -114,6 +114,7 @@ namespace Client
                 .AddSingleton<NpcHandler>()
                 .AddSingleton<PlayerHandler>()
                 .AddSingleton<ChatMessageHandler>()
+                .AddSingleton<PartyHandler>()
                 .AddSingleton<SkillHandler>()
                 .AddSingleton<ItemHander>()
                 .AddSingleton<WorldHandler>()

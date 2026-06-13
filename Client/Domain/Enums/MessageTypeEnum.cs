@@ -17,6 +17,7 @@ namespace Client.Domain.Enums
         Skill,
         Item,
         AbnormalEffect,
-        Chat
+        Chat,
+        Party
     }
 }
