@@ -184,6 +184,73 @@ namespace L2
 
 	enum class NetworkPacketId
 	{
-		SYSTEM_MESSAGE = 0x64
+		SYSTEM_MESSAGE = 0x64,
+		PARTY_SMALL_WINDOW_ALL = 0x47,
+		PARTY_SMALL_WINDOW_UPDATE = 0x4E,
+		PARTY_SMALL_WINDOW_ADD = 0x39,
+		PARTY_SMALL_WINDOW_DELETE = 0x4B,
+	};
+
+	/// Parser for PartySmallWindowUpdate / PartySmallWindowAdd packets.
+	/// Format: D objectId, S name, D cp, D cpMax, D hp, D hpMax, D mp, D mpMax, D level, D classId
+	struct PartySmallWindowPacket : NetworkPacket
+	{
+		uint32_t GetObjectId() const { return ReadDword(0); }
+		std::wstring GetName() const { return ReadString(4); }
+		uint32_t GetCp() const { return ReadDword(4 + nameLenBytes); }
+		uint32_t GetCpMax() const { return ReadDword(8 + nameLenBytes); }
+		uint32_t GetHp() const { return ReadDword(12 + nameLenBytes); }
+		uint32_t GetHpMax() const { return ReadDword(16 + nameLenBytes); }
+		uint32_t GetMp() const { return ReadDword(20 + nameLenBytes); }
+		uint32_t GetMpMax() const { return ReadDword(24 + nameLenBytes); }
+		uint32_t GetLevel() const { return ReadDword(28 + nameLenBytes); }
+		uint32_t GetClassId() const { return ReadDword(32 + nameLenBytes); }
+
+	private:
+		// L2 strings: 2-byte length prefix followed by UTF-16 chars, null-terminated.
+		mutable int nameLenBytes = -1;
+
+		int GetNameLengthBytes() const
+		{
+			if (nameLenBytes >= 0) return nameLenBytes;
+			// Read 2-byte length prefix at offset 4
+			uint16_t charLen = data[4] | (data[5] << 8);
+			nameLenBytes = 2 + (int)charLen * 2 + 2; // length prefix + chars + null terminator
+			return nameLenBytes;
+		}
+
+		uint32_t ReadDword(int offset) const
+		{
+			return ((uint32_t*)&data[offset])[0];
+		}
+
+		std::wstring ReadString(int offset) const
+		{
+			uint16_t charLen = data[offset] | (data[offset + 1] << 8);
+			const wchar_t* chars = (const wchar_t*)&data[offset + 2];
+			return std::wstring(chars, charLen);
+		}
+	};
+
+	/// Parser for PartySmallWindowDelete packet. Format: D objectId, S name
+	struct PartySmallWindowDeletePacket : NetworkPacket
+	{
+		uint32_t GetObjectId() const { return ((uint32_t*)data)[0]; }
+		std::wstring GetName() const
+		{
+			uint16_t charLen = data[4] | (data[5] << 8);
+			const wchar_t* chars = (const wchar_t*)&data[6];
+			return std::wstring(chars, charLen);
+		}
+	};
+
+	/// Parser for PartySmallWindowAll packet.
+	/// Format: D leaderId, D lootDist, D memberCount
+	/// After header: memberCount entries in same format as PartySmallWindowUpdate
+	struct PartySmallWindowAllPacket : NetworkPacket
+	{
+		uint32_t GetLeaderId() const { return ((uint32_t*)data)[0]; }
+		uint32_t GetLootDistribution() const { return ((uint32_t*)data)[1]; }
+		uint32_t GetMemberCount() const { return ((uint32_t*)data)[2]; }
 	};
 }

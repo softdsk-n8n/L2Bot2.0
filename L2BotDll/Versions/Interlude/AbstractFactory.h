@@ -17,6 +17,7 @@
 #include "Repositories/ItemRepository.h"
 #include "Repositories/AbnormalEffectRepository.h"
 #include "Repositories/ChatMessageRepository.h"
+#include "Repositories/PartyMemberRepository.h"
 #include "Services/HeroService.h"
 #include "GameStructs/NetworkHandlerWrapper.h"
 #include "GameStructs/GameEngineWrapper.h"
@@ -108,6 +109,11 @@ namespace Interlude
 			static auto result = ChatMessageRepository(
 				factory
 			);
+			return result;
+		}
+		PartyMemberRepository& GetPartyMemberRepository() const override
+		{
+			static auto result = PartyMemberRepository();
 			return result;
 		}
 		Services::HeroServiceInterface& GetHeroService() const override

@@ -27,6 +27,7 @@ public:
 	virtual Repositories::EntityRepositoryInterface& GetItemRepository() const = 0;
 	virtual Repositories::EntityRepositoryInterface& GetAbnormalEffectRepository() const = 0;
 	virtual Repositories::EntityRepositoryInterface& GetChatMessageRepository() const = 0;
+	virtual Repositories::EntityRepositoryInterface& GetPartyMemberRepository() const = 0;
 	virtual Services::HeroServiceInterface& GetHeroService() const = 0;
 	virtual NetworkHandlerInterface& GetNetworkHandler() const = 0;
 	virtual GameEngineInterface& GetGameEngine() const = 0;
@@ -43,7 +44,8 @@ public:
 			{L"skill", GetSkillRepository()},
 			{L"item", GetItemRepository()},
 			//{L"abnormalEffect", GetAbnormalEffectRepository()},
-			{L"chat", GetChatMessageRepository()}
+			{L"chat", GetChatMessageRepository()},
+			{L"party", GetPartyMemberRepository()}
 		};
 	}
 

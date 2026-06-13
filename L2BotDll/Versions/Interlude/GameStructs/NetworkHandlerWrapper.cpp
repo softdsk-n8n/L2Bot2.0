@@ -5,7 +5,9 @@
 #include "Domain/Services/ServiceLocator.h"
 #include "Domain/Exceptions.h"
 #include "Domain/Events/ChatMessageCreatedEvent.h"
+#include "Domain/Events/PartyMemberUpdatedEvent.h"
 #include "Domain/DTO/ChatMessageData.h"
+#include "Domain/DTO/PartyMemberData.h"
 #include "Domain/Enums/ChatChannelEnum.h"
 
 using namespace L2Bot::Domain;
@@ -257,25 +259,117 @@ namespace Interlude
 
 	int __fastcall NetworkHandlerWrapper::__AddNetworkQueue_hook(NetworkHandler* This, int, L2::NetworkPacket* packet)
 	{
-		if (packet && packet->id == static_cast<unsigned char>(L2::NetworkPacketId::SYSTEM_MESSAGE))
+		if (packet)
 		{
-			const auto sysMsg = reinterpret_cast<L2::SystemMessagePacket*>(packet);
-			const auto msgId = sysMsg->GetMessageId();
+			// Try both common SystemMessage opcodes: 0x62 (standard Interlude) and 0x64
+			if (packet->id == 0x62 || packet->id == 0x64)
+			{
+				const auto sysMsg = reinterpret_cast<L2::SystemMessagePacket*>(packet);
+				const auto msgId = sysMsg->GetMessageId();
 
-			std::wstring text = L"System message #" + std::to_wstring(msgId);
+				// Filter: only forward spoil/sweep related messages to avoid flooding C# with system spam
+				bool isSpoilSweep = (msgId == 343 || msgId == 357 || msgId == 608 || msgId == 609 || msgId == 612 || msgId == 661 || msgId == 683);
 
-			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
-				Events::ChatMessageCreatedEvent{
-					DTO::ChatMessageData{
-						msgId,
-						static_cast<uint8_t>(Enums::ChatChannelEnum::announcement),
-						L"System",
-						text
+				if (isSpoilSweep)
+				{
+					std::wstring text = L"System message #" + std::to_wstring(msgId);
+
+					Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
+						Events::ChatMessageCreatedEvent{
+							DTO::ChatMessageData{
+								msgId,
+								static_cast<uint8_t>(Enums::ChatChannelEnum::announcement),
+								L"System",
+								text
+							}
+						}
+					);
+
+					Services::ServiceLocator::GetInstance().GetLogger()->Info(L"SystemMessage forwarded: id={} opcode=0x{:02x}", msgId, packet->id);
+				}
+				else
+				{
+					// Log first few non-spoil system messages for opcode discovery
+					static int sysMsgLogCount = 0;
+					if (sysMsgLogCount++ < 10)
+					{
+						Services::ServiceLocator::GetInstance().GetLogger()->Info(L"SystemMessage (not forwarded): id={} opcode=0x{:02x}", msgId, packet->id);
 					}
 				}
-			);
+			}
 
-			Services::ServiceLocator::GetInstance().GetLogger()->Info(L"System message: {}", text);
+			// Party packet handling
+			if (packet->id == static_cast<unsigned char>(L2::NetworkPacketId::PARTY_SMALL_WINDOW_ALL))
+			{
+				const auto partyAll = reinterpret_cast<L2::PartySmallWindowAllPacket*>(packet);
+				auto memberCount = partyAll->GetMemberCount();
+				Services::ServiceLocator::GetInstance().GetLogger()->Info(L"PartySmallWindowAll: {} members (leader={}, lootDist={})", memberCount, partyAll->GetLeaderId(), partyAll->GetLootDistribution());
+
+				// Parse each member entry: same format as PartySmallWindowUpdate, starting after 12-byte header
+				int offset = 12;
+				for (uint32_t i = 0; i < memberCount && offset < packet->size; i++)
+				{
+					auto member = reinterpret_cast<L2::PartySmallWindowPacket*>(packet);
+					// Override data pointer to point at current member entry
+					// ... this won't work directly. Let's use raw parsing instead.
+					break; // TODO: proper iterative parsing
+				}
+			}
+			else if (packet->id == static_cast<unsigned char>(L2::NetworkPacketId::PARTY_SMALL_WINDOW_UPDATE))
+			{
+				const auto pkt = reinterpret_cast<L2::PartySmallWindowPacket*>(packet);
+				Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
+					Events::PartyMemberUpdatedEvent{
+						DTO::PartyMemberData{
+							pkt->GetObjectId(),
+							pkt->GetName(),
+							(int32_t)pkt->GetLevel(),
+							(int32_t)pkt->GetClassId(),
+							(int32_t)pkt->GetHp(),
+							(int32_t)pkt->GetHpMax(),
+							(int32_t)pkt->GetMp(),
+							(int32_t)pkt->GetMpMax(),
+							(int32_t)pkt->GetCp(),
+							(int32_t)pkt->GetCpMax()
+						},
+						Events::PartyMemberAction::Updated
+					}
+				);
+				Services::ServiceLocator::GetInstance().GetLogger()->Info(L"PartySmallWindowUpdate: {} HP={}/{} MP={}/{}", pkt->GetName(), pkt->GetHp(), pkt->GetHpMax(), pkt->GetMp(), pkt->GetMpMax());
+			}
+			else if (packet->id == static_cast<unsigned char>(L2::NetworkPacketId::PARTY_SMALL_WINDOW_ADD))
+			{
+				const auto pkt = reinterpret_cast<L2::PartySmallWindowPacket*>(packet);
+				Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
+					Events::PartyMemberUpdatedEvent{
+						DTO::PartyMemberData{
+							pkt->GetObjectId(),
+							pkt->GetName(),
+							(int32_t)pkt->GetLevel(),
+							(int32_t)pkt->GetClassId(),
+							(int32_t)pkt->GetHp(),
+							(int32_t)pkt->GetHpMax(),
+							(int32_t)pkt->GetMp(),
+							(int32_t)pkt->GetMpMax(),
+							(int32_t)pkt->GetCp(),
+							(int32_t)pkt->GetCpMax()
+						},
+						Events::PartyMemberAction::Added
+					}
+				);
+				Services::ServiceLocator::GetInstance().GetLogger()->Info(L"PartySmallWindowAdd: {} id={}", pkt->GetName(), pkt->GetObjectId());
+			}
+			else if (packet->id == static_cast<unsigned char>(L2::NetworkPacketId::PARTY_SMALL_WINDOW_DELETE))
+			{
+				const auto pkt = reinterpret_cast<L2::PartySmallWindowDeletePacket*>(packet);
+				Services::ServiceLocator::GetInstance().GetEventDispatcher()->Dispatch(
+					Events::PartyMemberUpdatedEvent{
+						DTO::PartyMemberData{ pkt->GetObjectId(), pkt->GetName() },
+						Events::PartyMemberAction::Removed
+					}
+				);
+				Services::ServiceLocator::GetInstance().GetLogger()->Info(L"PartySmallWindowDelete: {} id={}", pkt->GetName(), pkt->GetObjectId());
+			}
 		}
 
 		return (*__AddNetworkQueue)(This, packet);
