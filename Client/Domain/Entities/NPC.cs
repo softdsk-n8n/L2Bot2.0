@@ -16,7 +16,6 @@ namespace Client.Domain.Entities
         public Transform Transform { get; set; }
         public bool IsHostile { get; set; }
         public uint NpcId { get; set; }
-        public SpoilStateEnum SpoilState { get { return spoilState; } set { if (spoilState != value) { spoilState = value; OnPropertyChanged(); } } }
         public FullName FullName
         {
             get => fullName;
@@ -103,13 +102,12 @@ namespace Client.Domain.Entities
             }
         }
         public CreatureTypeEnum Type { get => CreatureTypeEnum.NPC; }
-        public NPC(uint id, Transform transform, bool isHostile, uint npcId, SpoilStateEnum spoilState, FullName fullName, VitalStats vitalStats)
+        public NPC(uint id, Transform transform, bool isHostile, uint npcId, FullName fullName, VitalStats vitalStats)
         {
             Id = id;
             Transform = transform;
             IsHostile = isHostile;
             NpcId = npcId;
-            SpoilState = spoilState;
             this.fullName = FullName = fullName;
             this.vitalStats = VitalStats = vitalStats;
         }
@@ -134,6 +132,5 @@ namespace Client.Domain.Entities
         private uint aggroRadius;
         private VitalStats vitalStats;
         private FullName fullName;
-        private SpoilStateEnum spoilState;
     }
 }

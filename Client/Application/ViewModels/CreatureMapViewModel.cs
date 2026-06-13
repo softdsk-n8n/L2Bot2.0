@@ -72,8 +72,6 @@ namespace Client.Application.ViewModels
         public bool IsAttacker => hero.AttackerIds.Contains(creature.Id);
         public bool IsDead => creature.VitalStats.IsDead;
         public bool IsHostile => creature.IsHostile;
-        public bool IsSweepable => creature is NPC && ((NPC) creature).SpoilState == SpoilStateEnum.Sweepable;
-
         public ICommand MouseLeftClickCommand { get; }
         public ICommand MouseLeftDoubleClickCommand { get; }
         public ICommand MouseRightClickCommand { get; }
@@ -169,10 +167,6 @@ namespace Client.Application.ViewModels
             if (e.PropertyName == "Name")
             {
                 OnPropertyChanged("Name");
-            }
-            if (e.PropertyName == "SpoilState")
-            {
-                OnPropertyChanged("IsSweepable");
             }
         }
 

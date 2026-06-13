@@ -21,25 +21,25 @@ namespace Client.Infrastructure.Transports
             {
                 Disconnect();
 
-                connectionPipe = new NamedPipeClientStream(this.pipeName);
-                await connectionPipe.ConnectAsync();
+                connectionPipe = new NamedPipeClientStream(".", this.pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+                await connectionPipe.ConnectAsync(5000);
                 connectionPipe.ReadMode = PipeTransmissionMode.Message;
                 Debug.WriteLine("Connected to connection pipe");
 
                 byte[] buffer = new byte[16384 * 2];
-                int read = connectionPipe.Read(buffer, 0, buffer.Length);
+                int read = await connectionPipe.ReadAsync(buffer, 0, buffer.Length);
 
-                string pipeName = Encoding.Unicode.GetString(buffer).TrimEnd('\0');
+                string mainPipeName = Encoding.Unicode.GetString(buffer).TrimEnd('\0').TrimEnd('\n', '\r');
 
-                if (pipeName == "")
+                if (mainPipeName == "")
                 {
                     return;
                 }
 
-                Debug.WriteLine("Received connection pipe name " + pipeName);
+                Debug.WriteLine("Received connection pipe name " + mainPipeName);
 
-                mainPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-                await mainPipe.ConnectAsync();
+                mainPipe = new NamedPipeClientStream(".", mainPipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+                await mainPipe.ConnectAsync(5000);
                 mainPipe.ReadMode = PipeTransmissionMode.Message;
                 Debug.WriteLine("Connected to main pipe\n");
             }

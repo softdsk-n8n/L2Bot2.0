@@ -93,7 +93,7 @@ namespace Client.Infrastructure.Service
 
         private string GetGeodataFullpath()
         {
-            return System.IO.Directory.GetCurrentDirectory() + "/Assets/" + geodataDirectory + "/";
+            return System.IO.Directory.GetCurrentDirectory() + "/" + geodataDirectory + "/";
         }
 
         private readonly string geodataDirectory;

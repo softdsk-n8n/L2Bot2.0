@@ -113,6 +113,21 @@ namespace Client.Domain.Service
                 return;
             }
 
+            SendUseSkillMessage(id, isForced, isShiftPressed);
+        }
+
+        public void RequestUseSkillById(uint id, bool isForced, bool isShiftPressed)
+        {
+            if (hero == null)
+            {
+                return;
+            }
+
+            SendUseSkillMessage(id, isForced, isShiftPressed);
+        }
+
+        private void SendUseSkillMessage(uint id, bool isForced, bool isShiftPressed)
+        {
             var data = new UseSkillParams
             {
                 skillId = id,
