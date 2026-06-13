@@ -24,6 +24,23 @@ namespace Client.Domain.AI.State
             }
 
             var drops = Helper.GetDropByConfig(worldHandler, config, hero);
+
+            // Filter by distance to the corpse we killed — ignore other players' drops.
+            // Uses PickupRadius from config as max allowed distance from death position.
+            var deathPos = ((AI)this.ai).LastTargetDeathPosition;
+            if (deathPos != null)
+            {
+                for (var i = drops.Count - 1; i >= 0; i--)
+                {
+                    var dist = drops[i].Transform.Position.HorizontalDistance(deathPos);
+                    if (dist > config.Combat.PickupRadius)
+                    {
+                        DebugLogger.Log($"PickupState: ignoring {drops[i].Name} (id={drops[i].Id}) — {dist:F0} units from corpse, max allowed={config.Combat.PickupRadius}");
+                        drops.RemoveAt(i);
+                    }
+                }
+            }
+
             for (var i = drops.Count - 1; i >= 0; i--)
             {
                 if (pickupAttempts.ContainsKey(drops[i].Id) && pickupAttempts[drops[i].Id] > config.Combat.PickupAttemptsCount)

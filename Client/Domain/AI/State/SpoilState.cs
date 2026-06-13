@@ -9,7 +9,15 @@ namespace Client.Domain.AI.State
     public class SpoilState : BaseState
     {
         private DateTime _lastSentTime = DateTime.MinValue;
+        private DateTime _enterTime = DateTime.MinValue;
         private static readonly TimeSpan Cooldown = TimeSpan.FromMilliseconds(2000);
+        private static readonly TimeSpan GiveUpTimeout = TimeSpan.FromMilliseconds(5000);
+
+        /// <summary>
+        /// True when 5 seconds have passed since entering SpoilState
+        /// without SpoilConfirmed — bot should give up and just kill the mob.
+        /// </summary>
+        public bool ShouldGiveUp => (DateTime.Now - _enterTime) > GiveUpTimeout;
 
         public SpoilState(AI ai) : base(ai)
         {
@@ -22,6 +30,7 @@ namespace Client.Domain.AI.State
                 ai.SpoilAttemptedTargetId = hero.Target.Id;
                 ai.SpoilConfirmed = false;
                 _lastSentTime = DateTime.MinValue;
+                _enterTime = DateTime.Now;
                 DebugLogger.Log($"SpoilState: entered for target {hero.Target.Id}");
             }
         }
@@ -31,6 +40,14 @@ namespace Client.Domain.AI.State
             if (hero.Target == null)
             {
                 DebugLogger.Log($"SpoilState: no target, skipping");
+                return;
+            }
+
+            // Give up after timeout — stop sending Spoil, let transition move to Attack
+            if (ShouldGiveUp)
+            {
+                var timeSpent = (DateTime.Now - _enterTime).TotalMilliseconds;
+                DebugLogger.Log($"SpoilState: giving up after {timeSpent:F0}ms (SpoilConfirmed still false)");
                 return;
             }
 

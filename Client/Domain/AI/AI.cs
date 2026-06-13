@@ -53,6 +53,7 @@ namespace Client.Domain.AI
         public bool SweepConfirmed { get; set; } = false;
         public uint SpoilAttemptedTargetId { get; set; } = 0;
         public uint LastTargetId { get; set; } = 0;
+        public Client.Domain.ValueObjects.Vector3? LastTargetDeathPosition { get; set; } = null;
 
         public void Handle(ChatMessageCreatedEvent @event)
         {
@@ -139,6 +140,22 @@ namespace Client.Domain.AI
             SweepConfirmed = false;
             SpoilAttemptedTargetId = 0;
             LastTargetId = 0;
+            LastTargetDeathPosition = null;
+        }
+
+        /// <summary>
+        /// Resets combat state to Idle and clears all spoil/sweep flags.
+        /// Used by AntiJam recovery to force a fresh target acquisition.
+        /// </summary>
+        public void ResetCombat()
+        {
+            if (asyncPathMover != null)
+            {
+                asyncPathMover.Unlock();
+            }
+            CurrentState = BaseState.Type.Idle;
+            ResetSpoilState();
+            DebugLogger.Log("AI.ResetCombat: reset to Idle, state cleared");
         }
 
         private void ResetState()

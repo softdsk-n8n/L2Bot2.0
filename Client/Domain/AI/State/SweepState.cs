@@ -9,8 +9,8 @@ namespace Client.Domain.AI.State
     {
         private DateTime _lastSentTime = DateTime.MinValue;
         private DateTime _enterTime = DateTime.MinValue;
-        private static readonly TimeSpan Cooldown = TimeSpan.FromMilliseconds(2000);
-        private static readonly TimeSpan GiveUpTimeout = TimeSpan.FromMilliseconds(5000);
+        private static readonly TimeSpan Cooldown = TimeSpan.FromMilliseconds(1000);
+        private static readonly TimeSpan GiveUpTimeout = TimeSpan.FromMilliseconds(1200);
 
         public bool ShouldGiveUp => (DateTime.Now - _enterTime) > GiveUpTimeout;
 

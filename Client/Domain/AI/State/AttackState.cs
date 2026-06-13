@@ -71,6 +71,11 @@ namespace Client.Domain.AI.State
                 {
                     ai.LastTargetId = hero.Target.Id;
                 }
+
+                // Save death position so PickupState can filter drops by distance
+                // to the corpse we killed — ignore other players' drops.
+                ai.LastTargetDeathPosition = hero.Target.Transform.Position.Clone() as Client.Domain.ValueObjects.Vector3;
+                DebugLogger.Log($"AttackState.DoOnLeave: saved LastTargetDeathPosition=({hero.Target.Transform.Position.X:F0},{hero.Target.Transform.Position.Y:F0},{hero.Target.Transform.Position.Z:F0})");
             }
             lastAttackTargetId = 0;
         }

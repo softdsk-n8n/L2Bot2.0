@@ -80,7 +80,8 @@ namespace Client.Domain.AI.Combat
                         }
                         return !worldHandler.Hero.HasValidTarget;
                     }),
-                    // MoveToTarget → Spoiling: when spoil enabled and target not yet spoiled
+                    // MoveToTarget → Spoiling: only when close enough to the target (like Attack transition).
+                    // Prevents spoiling from across the map — forces bot to actually move to target first.
                     new(new List<BaseState.Type>{BaseState.Type.MoveToTarget}, BaseState.Type.Spoiling, (state) => {
                         if (worldHandler.Hero == null || worldHandler.Hero.Target == null) {
                             DebugLogger.Log("TRANSITION MoveToTarget→Spoiling: Hero/Target null");
@@ -88,14 +89,24 @@ namespace Client.Domain.AI.Combat
                         }
 
                         var ai = state.GetAI();
-                        bool canSpoil = config.Combat.SpoilIfPossible
+                        bool spoilEnabled = config.Combat.SpoilIfPossible
                             && config.Combat.SpoilSkillId != 0
                             && !worldHandler.Hero.Target.VitalStats.IsDead
                             && !ai.SpoilConfirmed
-                            && CanSpoilTarget(config, worldHandler.Hero.Target.Id);
+                            && CanSpoilTarget(config, worldHandler.Hero.Target?.Id);
 
-                        DebugLogger.Log($"TRANSITION MoveToTarget→Spoiling: SpoilIfPossible={config.Combat.SpoilIfPossible}, SkillId={config.Combat.SpoilSkillId}, TargetDead={worldHandler.Hero.Target.VitalStats.IsDead}, SpoilConfirmed={ai.SpoilConfirmed}, CanSpoilTarget={canSpoil}");
-                        return canSpoil;
+                        if (!spoilEnabled)
+                        {
+                            return false;
+                        }
+
+                        // Require being close to target AND having line of sight — same as Attack transition
+                        var distance = worldHandler.Hero.Transform.Position.Distance(worldHandler.Hero.Target.Transform.Position);
+                        bool inRange = distance < Helper.GetAttackDistanceByConfig(worldHandler, config, worldHandler.Hero, worldHandler.Hero.Target)
+                            && pathMover.Pathfinder.HasLineOfSight(worldHandler.Hero.Transform.Position, worldHandler.Hero.Target.Transform.Position);
+
+                        DebugLogger.Log($"TRANSITION MoveToTarget→Spoiling: SpoilIfPossible={config.Combat.SpoilIfPossible}, SkillId={config.Combat.SpoilSkillId}, Distance={distance:F0}, InRange={inRange}, SpoilConfirmed={ai.SpoilConfirmed}");
+                        return inRange;
                     }),
                     new(new List<BaseState.Type>{BaseState.Type.Idle}, BaseState.Type.Rest, (state) => {
                         if (worldHandler.Hero == null) {
@@ -111,21 +122,23 @@ namespace Client.Domain.AI.Combat
                         return worldHandler.Hero.VitalStats.HpPercent >= config.Combat.RestEndPecentHp
                             && worldHandler.Hero.VitalStats.MpPercent >= config.Combat.RestEndPecentMp;
                     }),
-                    // Spoiling → Attack: when spoil confirmed, or target died, or spoil disabled
+                    // Spoiling → Attack: when spoil confirmed, give-up timeout, target died, or spoil disabled
                     new(new List<BaseState.Type>{BaseState.Type.Spoiling}, BaseState.Type.Attack, (state) => {
                         if (worldHandler.Hero == null) {
                             DebugLogger.Log("TRANSITION Spoiling→Attack: Hero null");
                             return false;
                         }
 
+                        var spoilState = (SpoilState)state;
                         var ai = state.GetAI();
                         bool shouldAttack = ai.SpoilConfirmed
+                            || spoilState.ShouldGiveUp
                             || !config.Combat.SpoilIfPossible
                             || config.Combat.SpoilSkillId == 0
                             || !worldHandler.Hero.HasValidTarget
                             || !CanSpoilTarget(config, worldHandler.Hero.Target?.Id);
 
-                        DebugLogger.Log($"TRANSITION Spoiling→Attack: SpoilConfirmed={ai.SpoilConfirmed}, SpoilIfPossible={config.Combat.SpoilIfPossible}, SkillId={config.Combat.SpoilSkillId}, HasValidTarget={worldHandler.Hero.HasValidTarget} => {shouldAttack}");
+                        DebugLogger.Log($"TRANSITION Spoiling→Attack: SpoilConfirmed={ai.SpoilConfirmed}, ShouldGiveUp={spoilState.ShouldGiveUp}, HasValidTarget={worldHandler.Hero.HasValidTarget} => {shouldAttack}");
                         return shouldAttack;
                     }),
                     new(new List<BaseState.Type>{BaseState.Type.MoveToTarget}, BaseState.Type.Attack, (state) => {
@@ -154,15 +167,18 @@ namespace Client.Domain.AI.Combat
                         }
 
                         var ai = state.GetAI();
-                        // Sweep if: sweeper configured + spoil was confirmed + the mob we
-                        // killed (LastTargetId) is dead or not our current target anymore.
+
+                        // Target is considered "gone" if: no valid target, or target changed,
+                        // OR target is dead (game keeps dead mobs as valid targets).
+                        bool targetIsDead = worldHandler.Hero.Target != null && worldHandler.Hero.Target.VitalStats.IsDead;
                         bool targetIsGone = !worldHandler.Hero.HasValidTarget
-                            || (worldHandler.Hero.Target != null && worldHandler.Hero.Target.Id != ai.LastTargetId);
+                            || (worldHandler.Hero.Target != null && worldHandler.Hero.Target.Id != ai.LastTargetId)
+                            || targetIsDead;
                         bool shouldSweep = targetIsGone
                             && config.Combat.SweeperSkillId != 0
                             && ai.SpoilConfirmed;
 
-                        DebugLogger.Log($"TRANSITION Attack→Sweeping: HasValidTarget={worldHandler.Hero.HasValidTarget}, targetIsGone={targetIsGone}, SweeperSkillId={config.Combat.SweeperSkillId}, SpoilConfirmed={ai.SpoilConfirmed}, LastTargetId={ai.LastTargetId} => {shouldSweep}");
+                        DebugLogger.Log($"TRANSITION Attack→Sweeping: HasValidTarget={worldHandler.Hero.HasValidTarget}, targetIsDead={targetIsDead}, targetIsGone={targetIsGone}, SweeperSkillId={config.Combat.SweeperSkillId}, SpoilConfirmed={ai.SpoilConfirmed}, LastTargetId={ai.LastTargetId} => {shouldSweep}");
                         return shouldSweep;
                     }),
                     // Attack → Pickup: when target died and NO sweep is needed
@@ -182,10 +198,12 @@ namespace Client.Domain.AI.Combat
                             return false;
                         }
 
-                        // The mob we attacked is gone if: no valid target at all, OR
-                        // current target is different from LastTargetId (game auto-targeted next mob).
+                        // The mob we attacked is gone if: no valid target, target changed,
+                        // OR target is dead (game keeps dead mobs as valid targets).
+                        bool targetIsDead = worldHandler.Hero.Target != null && worldHandler.Hero.Target.VitalStats.IsDead;
                         bool targetIsGone = !worldHandler.Hero.HasValidTarget
-                            || (worldHandler.Hero.Target != null && worldHandler.Hero.Target.Id != ai.LastTargetId);
+                            || (worldHandler.Hero.Target != null && worldHandler.Hero.Target.Id != ai.LastTargetId)
+                            || targetIsDead;
 
                         return targetIsGone;
                     }),
@@ -237,7 +255,20 @@ namespace Client.Domain.AI.Combat
                         }
                         return false;
                     }),
-                    new(new List<BaseState.Type>{BaseState.Type.Idle, BaseState.Type.Spoiling}, BaseState.Type.FindTarget),
+                    new(new List<BaseState.Type>{BaseState.Type.Idle, BaseState.Type.Spoiling}, BaseState.Type.FindTarget, (state) => {
+                        // Only exit Spoiling when the spoil attempt is resolved:
+                        // confirmed (SpoilConfirmed=true) OR timed out (ShouldGiveUp).
+                        if (state is SpoilState)
+                        {
+                            var spoilState = (SpoilState)state;
+                            var ai = state.GetAI();
+                            bool done = ai.SpoilConfirmed || spoilState.ShouldGiveUp;
+                            DebugLogger.Log($"TRANSITION Spoiling→FindTarget: SpoilConfirmed={ai.SpoilConfirmed}, ShouldGiveUp={spoilState.ShouldGiveUp} => {done}");
+                            return done;
+                        }
+                        // From Idle: always allow
+                        return true;
+                    }),
                 };
             }
 
