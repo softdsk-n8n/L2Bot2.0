@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
@@ -6,7 +6,9 @@
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<PlatformTarget>x86</PlatformTarget>
+		<AssemblyName>L2BotClient</AssemblyName>
 	</PropertyGroup>
+
 
 	<ItemGroup>
 		<Content Include="config.json">

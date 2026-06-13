@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Build logs
+Client/build_log.txt
+# Session notes
+SESSION_LOG.md

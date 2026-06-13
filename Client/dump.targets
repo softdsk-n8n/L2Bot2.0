@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="DumpItems">
+    <Message Importance="High" Text="Compile items:" />
+    <Message Importance="High" Text="  %(Compile.Identity)" />
+  </Target>
+</Project>
