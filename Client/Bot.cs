@@ -47,32 +47,78 @@ namespace Client
 
         public async Task StartAsync()
         {
-            ai.Disable();
-            int hDll = LoadLibrary(dllName);
-
-            if (hDll == 0)
+            try
             {
-                throw new Exception("Unable to load library " + dllName + ": " + Marshal.GetLastWin32Error().ToString());
-            }
+                File.WriteAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] StartAsync began{Environment.NewLine}");
 
-            Debug.WriteLine(dllName + " loaded\n");
-            transport.Message += OnMessage;
+                ai.Disable();
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] ai.Disable done{Environment.NewLine}");
 
-            SubscribeAllHandlers();
+                int hDll = LoadLibrary(dllName);
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] LoadLibrary({dllName}) = {hDll}{Environment.NewLine}");
 
-            await transport.ConnectAsync();
-            await transport.SendAsync("invalidate");
-            var aiTask = Task.Run(async () =>
-            {
+                if (hDll == 0)
+                {
+                    throw new Exception("Unable to load library " + dllName + ": " + Marshal.GetLastWin32Error().ToString());
+                }
+
+                transport.Message += OnMessage;
+                SubscribeAllHandlers();
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Subscribed, connecting...{Environment.NewLine}");
+
+                // Retry connection loop instead of crashing
                 while (true)
                 {
-                    await ai.Update();
+                    try
+                    {
+                        File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Connecting...{Environment.NewLine}");
+                        await transport.ConnectAsync();
+                        File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] CONNECTED!{Environment.NewLine}");
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Connection failed: {ex.Message}{Environment.NewLine}");
+                        await Task.Delay(3000);
+                    }
                 }
-            });
-            while (true)
+
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Sending invalidate...{Environment.NewLine}");
+                await transport.SendAsync("invalidate");
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] invalidate sent{Environment.NewLine}");
+
+                var aiTask = Task.Run(async () =>
+                {
+                    while (true)
+                    {
+                        await ai.Update();
+                    }
+                });
+
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Entering receive loop{Environment.NewLine}");
+                while (true)
+                {
+                    File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Waiting for data...{Environment.NewLine}");
+                    await transport.ReceiveAsync();
+                    File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] ReceiveAsync returned{Environment.NewLine}");
+                    // Retry reconnection loop
+                    while (true)
+                    {
+                        try
+                        {
+                            await transport.ConnectAsync();
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            await Task.Delay(3000);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                await transport.ReceiveAsync();
-                await transport.ConnectAsync();
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] FATAL: {ex}{Environment.NewLine}");
             }
         }
 
@@ -114,6 +160,7 @@ namespace Client
 
         private void OnMessage(string args)
         {
+            File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] RECEIVED: {args.Substring(0, Math.Min(args.Length, 200))}{Environment.NewLine}");
             try
             {
                 var message = messageParser.Parse(args);
@@ -124,12 +171,12 @@ namespace Client
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Exception: " + ex.Message);
+                    File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Handler error: {ex.Message}{Environment.NewLine}");
                 }
             }
             catch (Domain.Exception.ParserException)
             {
-                Debug.WriteLine("Unable to parse message: " + args);
+                File.AppendAllText("bot_debug.log", $"[{DateTime.Now:HH:mm:ss}] Parse error for: {args}{Environment.NewLine}");
             }
         }
     }

@@ -36,24 +36,6 @@ namespace Client.Domain.AI.State
                 lastAttackTargetId = hero.Target.Id;
             }
 
-            if (config.Combat.SpoilIfPossible)
-            {
-                NPC? npc = hero.Target as NPC;
-                var spoil = worldHandler.GetSkillById(config.Combat.SpoilSkillId);
-                if (spoil != null && npc != null && npc.SpoilState == Enums.SpoilStateEnum.None)
-                {
-                    var excluded = config.Combat.ExcludedSpoilMobIds;
-                    var included = config.Combat.IncludedSpoilMobIds;
-                    if (!excluded.ContainsKey(npc.NpcId) && (included.Count == 0 || included.ContainsKey(npc.NpcId)))
-                    {
-                        if (spoil.IsReadyToUse && hero.VitalStats.Mp >= spoil.Cost)
-                        {
-                            worldHandler.RequestUseSkill(spoil.Id, false, false);
-                        }
-                    }
-                }
-            }
-
             var skill = Helper.GetSkillByConfig(worldHandler, config, hero, hero.Target);
             if (skill != null && skill.IsReadyToUse && hero.VitalStats.Mp >= skill.Cost)
             {

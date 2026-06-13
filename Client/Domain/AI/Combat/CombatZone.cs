@@ -65,7 +65,7 @@ namespace Client.Domain.AI.Combat
         private ZoneType type = ZoneType.DynamicCircle;
         private Vector3 center = new Vector3(0, 0, 0);
         private float radius;
-        private bool isRelativeToHero;
+        private bool isRelativeToHero = true;
         private uint maxZDelta = 150;
         private bool bypassObstacles = true;
         private int bypassTimeoutMs = 3500;

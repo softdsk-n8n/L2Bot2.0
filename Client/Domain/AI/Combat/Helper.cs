@@ -84,13 +84,12 @@ namespace Client.Domain.AI.Combat
 
         public static bool IsOnSpot(WorldHandler worldHandler, Config config, Hero hero)
         {
-            if (config.Combat.Zone == null)
+            if (config.Combat.Zone == null || config.Combat.Zone.Type == ZoneType.Free)
             {
                 return true;
             }
 
-            var spot = new Vector3(config.Combat.Zone.Center.X, config.Combat.Zone.Center.Y, hero.Transform.Position.Z);
-            return spot.Distance(hero.Transform.Position) <= 200;
+            return config.Combat.Zone.IsInside(hero.Transform.Position, hero.Transform.Position);
         }
 
         public static uint GetAttackDistanceByConfig(WorldHandler worldHandler, Config config, Hero hero, CreatureInterface target)

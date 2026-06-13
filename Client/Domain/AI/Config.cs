@@ -36,14 +36,6 @@ namespace Client.Domain.AI
             public List<SkillCondition> SkillConditions { get; set; } = new List<SkillCondition>();
             public byte MaxPassableHeight { get; set; } = 30;
 
-            public bool SpoilIfPossible { get; set; } = true;
-            public bool SpoilIsPriority { get; set; } = false;
-            public Dictionary<uint, bool> ExcludedSpoilMobIds { get; set; } = new Dictionary<uint, bool>();
-            public Dictionary<uint, bool> IncludedSpoilMobIds { get; set; } = new Dictionary<uint, bool>();
-            public uint SpoilSkillId { get; set; } = 254;
-            public uint SweeperSkillId { get; set; } = 42;
-            public byte SweepAttemptsCount { get; set; } = 10;
-
             public bool PickupIfPossible { get; set; } = true;
             public uint PickupMaxDeltaZ { get; set; } = 500;
             public byte PickupAttemptsCount { get; set; } = 10;

@@ -33,34 +33,14 @@ namespace Client.Domain.AI.State
             return drops;
         }
 
-        public bool IsSweeperMustBeUsed(WorldHandler worldHandler, Config config)
-        {
-            return GetSweepableMobs(worldHandler, config).Count > 0;
-        }
-
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
         {
-            if (IsSweeperMustBeUsed(worldHandler, config))
-            {
-                var mob = GetSweepableMobs(worldHandler, config).First();
-                var sweeper = worldHandler.GetSkillById(config.Combat.SweeperSkillId);
-                if (sweeper != null && sweeper.IsReadyToUse && hero.VitalStats.Mp >= sweeper.Cost)
-                {
-                    worldHandler.RequestAcquireTarget(mob.Id);
-                    worldHandler.RequestUseSkill(sweeper.Id, false, false);
-                    if (!sweepAttempts.ContainsKey(mob.Id))
-                    {
-                        sweepAttempts[mob.Id] = 0;
-                    }
-                    sweepAttempts[mob.Id]++;
-                }
-            }
-
             if (!hero.Transform.IsMoving)
             {
                 var drops = GetDrops(worldHandler, config);
                 if (drops.Count > 0)
                 {
+                    DebugLogger.Log($"PickupState: -> RequestPickUp({drops[0].Name})");
                     worldHandler.RequestPickUp(drops[0].Id);
                     if (!pickupAttempts.ContainsKey(drops[0].Id))
                     {
@@ -74,21 +54,8 @@ namespace Client.Domain.AI.State
         protected override void DoOnLeave(WorldHandler worldHandler, Config config, Hero hero)
         {
             pickupAttempts.Clear();
-            sweepAttempts.Clear();
-        }
-
-        private List<NPC> GetSweepableMobs(WorldHandler worldHandler, Config config)
-        {
-            return worldHandler.GetDeadMobsSortedByDistanceToHero(config.Combat.MobsMaxDeltaZ)
-                .Where(x =>
-                {
-                    return x.SpoilState == Enums.SpoilStateEnum.Sweepable &&
-                        (!sweepAttempts.ContainsKey(x.Id) || sweepAttempts[x.Id] <= config.Combat.SweepAttemptsCount);
-                })
-                .ToList();
         }
 
         private Dictionary<uint, short> pickupAttempts = new Dictionary<uint, short>();
-        private Dictionary<uint, short> sweepAttempts = new Dictionary<uint, short>();
     }
 }

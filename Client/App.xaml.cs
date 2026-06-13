@@ -19,6 +19,7 @@ using Client.Infrastructure.Helpers;
 using Client.Domain.Events;
 using Client.Infrastructure.Events;
 using System;
+using System.Threading.Tasks;
 using Client.Infrastructure.Service;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,7 +55,7 @@ namespace Client
             base.OnStartup(e);
 
             var application = AppHost.Services.GetRequiredService<Bot>();
-            await application.StartAsync();
+            _ = Task.Run(async () => await application.StartAsync());
         }
 
         protected override async void OnExit(ExitEventArgs e)

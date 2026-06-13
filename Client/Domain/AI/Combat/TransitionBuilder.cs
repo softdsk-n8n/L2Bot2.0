@@ -96,13 +96,6 @@ namespace Client.Domain.AI.Combat
                             return false;
                         }
 
-                        if (config.Combat.SpoilIsPriority) {
-                            var spoil = worldHandler.GetSkillById(config.Combat.SpoilSkillId);
-                            if (spoil != null && !spoil.IsReadyToUse) {
-                                return false;
-                            }
-                        }
-
                         var distance = worldHandler.Hero.Transform.Position.Distance(worldHandler.Hero.Target.Transform.Position);
                         return distance < Helper.GetAttackDistanceByConfig(worldHandler, config, worldHandler.Hero, worldHandler.Hero.Target)
                             && pathMover.Pathfinder.HasLineOfSight(worldHandler.Hero.Transform.Position, worldHandler.Hero.Target.Transform.Position);
@@ -126,11 +119,6 @@ namespace Client.Domain.AI.Combat
                             return false;
                         }
                         var currentState = (PickupState) state;
-
-                        if (worldHandler.GetSkillById(config.Combat.SweeperSkillId) != null && currentState.IsSweeperMustBeUsed(worldHandler, config)) {
-                            return false;
-                        }
-
                         return currentState.GetDrops(worldHandler, config).Count == 0;
                     }),
                     new(new List<BaseState.Type>{BaseState.Type.Idle}, BaseState.Type.FindTarget),
