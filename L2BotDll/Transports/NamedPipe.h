@@ -5,6 +5,7 @@
 #include <memory>
 #include <cstdint>
 #include <format>
+#include <sddl.h>
 #include "Domain/Exceptions.h"
 #include "Domain/Services/ServiceLocator.h"
 
@@ -28,6 +29,20 @@ public:
 				CreateOverlapped(m_WritingOverlapped);
 			}
 
+			// Allow all users to access the pipe (prevents UnauthorizedAccessException 
+			// when client connects from a different integrity level)
+			SECURITY_ATTRIBUTES sa;
+			sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+			sa.bInheritHandle = FALSE;
+			sa.lpSecurityDescriptor = NULL;
+			
+			ConvertStringSecurityDescriptorToSecurityDescriptorW(
+				L"D:(A;;GA;;;WD)", // WD = Everyone, GA = Generic All
+				SDDL_REVISION_1,
+				&sa.lpSecurityDescriptor,
+				NULL
+			);
+
 			m_Pipe = CreateNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(),
 				PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
 				PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
@@ -35,8 +50,13 @@ public:
 				BUFFER_SIZE * sizeof(wchar_t),
 				BUFFER_SIZE * sizeof(wchar_t),
 				NMPWAIT_USE_DEFAULT_WAIT,
-				NULL
+				&sa
 			);
+
+			if (sa.lpSecurityDescriptor != NULL)
+			{
+				LocalFree(sa.lpSecurityDescriptor);
+			}
 
 			if (m_Pipe == INVALID_HANDLE_VALUE)
 			{
@@ -47,6 +67,9 @@ public:
 		{
 			DisconnectNamedPipe(m_Pipe);
 		}
+
+		// Reset event before connecting - it may be signaled from a previous connection
+		ResetEvent(m_ConntectingOverlapped.hEvent);
 
 		TryToConnect();
 
@@ -62,15 +85,28 @@ public:
 
 	void Send(const std::wstring& message)
 	{
+		SendImpl(message, true);
+	}
+
+	void SendRaw(const std::wstring& message)
+	{
+		SendImpl(message, false);
+	}
+
+private:
+	void SendImpl(const std::wstring& message, bool addNewline)
+	{
 		if (!m_Connected)
 		{
 			return;
 		}
 
-		const std::wstring preparedMessage = message + L"\n";
+		const std::wstring preparedMessage = addNewline ? (message + L"\n") : message;
+
+		ResetEvent(m_WritingOverlapped.hEvent);
 
 		DWORD written;
-		const auto result = WriteFile(m_Pipe, message.c_str(), (message.size() + 1) * sizeof(wchar_t), &written, &m_WritingOverlapped);
+		const auto result = WriteFile(m_Pipe, preparedMessage.c_str(), static_cast<DWORD>((preparedMessage.size() + 1) * sizeof(wchar_t)), &written, &m_WritingOverlapped);
 
 		const auto lastError = GetLastError();
 		if (!result)
@@ -94,12 +130,16 @@ public:
 		}
 	}
 
+public:
+
 	const std::wstring Receive()
 	{
 		if (!m_Connected)
 		{
 			return L"";
 		}
+
+		ResetEvent(m_ReadingOverlapped.hEvent);
 
 		DWORD dwRead;
 		std::unique_ptr<wchar_t[]> buffer = std::make_unique<wchar_t[]>(BUFFER_SIZE);
@@ -172,7 +212,7 @@ private:
 	{
 		if (overlapped.hEvent == NULL)
 		{
-			overlapped.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
+			overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 			if (overlapped.hEvent == NULL)
 			{
 				throw CriticalRuntimeException(std::format(L"cannot create overlapped for the pipe {}: {}", m_PipeName, GetLastError()));

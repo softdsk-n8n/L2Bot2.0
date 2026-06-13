@@ -21,7 +21,7 @@ public:
 
 		const auto mainPipeName = GenerateUUID();
 
-		m_ConnectionPipe.Send(mainPipeName);
+		m_ConnectionPipe.SendRaw(mainPipeName);
 
 		Services::ServiceLocator::GetInstance().GetLogger()->Info(L"name ""{}"" of the main pipe sended", mainPipeName);
 
