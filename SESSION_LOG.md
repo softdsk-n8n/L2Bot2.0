@@ -141,3 +141,10 @@
 - **How:** Added `StackPanel` in `MainWindow.xaml` with buttons bound to `Map.ToggleDrawZoneCommand`, `Map.ClearZoneCommand`, `Map.ShowMobAggro`. Removed controls from `Map.xaml`. Added `ClearZoneCommand` to `MapViewModel`.
 - **Files:** `MainWindow.xaml`, `Map.xaml`, `MapViewModel.cs`.
 
+### Fix: Bot not attacking (running to 0,0)
+- **Root cause:** `CombatZone.Center` defaulted to `(0,0,0)` and `IsRelativeToHero` defaulted to `false`. Bot thought zone was at origin, so `GetMobsToAttackByConfig` returned empty list → AI transitioned to `MoveToSpot` → bot ran to `(0,0)` forever (red path line).
+- **Fixes:**
+  1. `CombatZone.IsRelativeToHero` default changed to `true` — `DynamicCircle` now follows hero by default.
+  2. `Helper.IsOnSpot` replaced hardcoded center-distance check with `zone.IsInside(hero.Position, hero.Position)` — works correctly for all zone types.
+- **Files:** `CombatZone.cs`, `Helper.cs`.
+
