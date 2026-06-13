@@ -38,125 +38,167 @@ namespace Client.Application.ViewModels
         EventHandlerInterface<ItemDeletedEvent>
     {
 
+        private void Dispatch(Action action)
+        {
+            var dispatcher = System.Windows.Application.Current.Dispatcher;
+            if (dispatcher.CheckAccess())
+                action();
+            else
+                dispatcher.Invoke(action);
+        }
+
         public void Handle(HeroCreatedEvent @event)
         {
-            Hero = new HeroSummaryInfoViewModel(@event.Hero, ai, Items, QuestItems);
-            hero = @event.Hero;
-            Map.Hero = hero;
-            Map.CombatZone = new AICombatZoneMapViewModel(aiConfig.Combat.Zone, hero);
-            AddCreature(hero);
-            OnPropertyChanged("Hero");
-            OnPropertyChanged("Map");
+            Dispatch(() =>
+            {
+                Hero = new HeroSummaryInfoViewModel(@event.Hero, ai, Items, QuestItems);
+                hero = @event.Hero;
+                Map.Hero = hero;
+                Map.CombatZone = new AICombatZoneMapViewModel(aiConfig.Combat.Zone, hero);
+                AddCreature(hero);
+                OnPropertyChanged("Hero");
+                OnPropertyChanged("Map");
+            });
         }
 
         public void Handle(HeroDeletedEvent @event)
         {
-            if (hero != null)
+            Dispatch(() =>
             {
-                RemoveCreature(hero.Id);
-            }
-            Hero = null;
-            hero = null;
-            Map.Hero = null;
-            Map.CombatZone = null;
-            OnPropertyChanged("Hero");
-            OnPropertyChanged("Map");
+                if (hero != null)
+                {
+                    RemoveCreature(hero.Id);
+                }
+                Hero = null;
+                hero = null;
+                Map.Hero = null;
+                Map.CombatZone = null;
+                OnPropertyChanged("Hero");
+                OnPropertyChanged("Map");
+            });
         }
 
         public void Handle(CreatureCreatedEvent @event)
         {
-            if (hero != null)
+            Dispatch(() =>
             {
-                Creatures.Add(new CreatureListViewModel(worldHandler, pathMover, @event.Creature, hero));
-                AddCreature(@event.Creature);
-            }
+                if (hero != null)
+                {
+                    Creatures.Add(new CreatureListViewModel(worldHandler, pathMover, @event.Creature, hero));
+                    AddCreature(@event.Creature);
+                }
+            });
         }
 
         public void Handle(CreatureDeletedEvent @event)
         {
-            var creature = Creatures.Where(x => x.Id == @event.Id).FirstOrDefault();
-            if (creature != null)
+            Dispatch(() =>
             {
-                creature.UnsubscribeAll();
-                Creatures.Remove(creature);
-            }
-            RemoveCreature(@event.Id);
+                var creature = Creatures.Where(x => x.Id == @event.Id).FirstOrDefault();
+                if (creature != null)
+                {
+                    creature.UnsubscribeAll();
+                    Creatures.Remove(creature);
+                }
+                RemoveCreature(@event.Id);
+            });
         }
 
         public void Handle(DropCreatedEvent @event)
         {
-            if (hero != null)
+            Dispatch(() =>
             {
-                Drops.Add(new DropListViewModel(worldHandler, pathMover, @event.Drop, hero));
-                Map.Drops.Add(new DropMapViewModel(worldHandler, pathMover, @event.Drop, hero));
-            }
+                if (hero != null)
+                {
+                    Drops.Add(new DropListViewModel(worldHandler, pathMover, @event.Drop, hero));
+                    Map.Drops.Add(new DropMapViewModel(worldHandler, pathMover, @event.Drop, hero));
+                }
+            });
         }
 
         public void Handle(DropDeletedEvent @event)
         {
-            var drop = Drops.Where(x => x.Id == @event.Id).FirstOrDefault();
-            if (drop != null)
+            Dispatch(() =>
             {
-                drop.UnsubscribeAll();
-                Drops.Remove(drop);
-            }
-            var mapDrop = Map.Drops.Where(x => x.Id == @event.Id).FirstOrDefault();
-            if (mapDrop != null)
-            {
-                mapDrop.UnsubscribeAll();
-                Map.Drops.Remove(mapDrop);
-            }
+                var drop = Drops.Where(x => x.Id == @event.Id).FirstOrDefault();
+                if (drop != null)
+                {
+                    drop.UnsubscribeAll();
+                    Drops.Remove(drop);
+                }
+                var mapDrop = Map.Drops.Where(x => x.Id == @event.Id).FirstOrDefault();
+                if (mapDrop != null)
+                {
+                    mapDrop.UnsubscribeAll();
+                    Map.Drops.Remove(mapDrop);
+                }
+            });
         }
 
         public void Handle(ChatMessageCreatedEvent @event)
         {
-            if (@event.Message.Channel == ChatChannelEnum.Announcement && !ShowSystemMessages)
+            Dispatch(() =>
             {
-                return;
-            }
-            ChatMessages.Add(new ChatMessageViewModel(@event.Message));
+                if (@event.Message.Channel == ChatChannelEnum.Announcement && !ShowSystemMessages)
+                {
+                    return;
+                }
+                ChatMessages.Add(new ChatMessageViewModel(@event.Message));
+            });
         }
 
         public void Handle(SkillCreatedEvent @event)
         {
-            if (hero != null)
+            Dispatch(() =>
             {
-                if (@event.Skill.IsActive)
+                if (hero != null)
                 {
-                    ActiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
+                    if (@event.Skill.IsActive)
+                    {
+                        ActiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
+                    }
+                    else
+                    {
+                        PassiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
+                    }
                 }
-                else
-                {
-                    PassiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
-                }
-            }
+            });
         }
 
         public void Handle(SkillDeletedEvent @event)
         {
-            ActiveSkills.RemoveAll(x => x.Id == @event.Id);
-            PassiveSkills.RemoveAll(x => x.Id == @event.Id);
+            Dispatch(() =>
+            {
+                ActiveSkills.RemoveAll(x => x.Id == @event.Id);
+                PassiveSkills.RemoveAll(x => x.Id == @event.Id);
+            });
         }
 
         public void Handle(ItemCreatedEvent @event)
         {
-            if (hero != null)
+            Dispatch(() =>
             {
-                if (@event.Item is EtcItem && ((EtcItem) @event.Item).IsQuest)
+                if (hero != null)
                 {
-                    QuestItems.Add(new ItemListViewModel(worldHandler, @event.Item));
+                    if (@event.Item is EtcItem && ((EtcItem)@event.Item).IsQuest)
+                    {
+                        QuestItems.Add(new ItemListViewModel(worldHandler, @event.Item));
+                    }
+                    else
+                    {
+                        Items.Add(new ItemListViewModel(worldHandler, @event.Item));
+                    }
                 }
-                else
-                {
-                    Items.Add(new ItemListViewModel(worldHandler, @event.Item));
-                }
-            }
+            });
         }
 
         public void Handle(ItemDeletedEvent @event)
         {
-            Items.RemoveAll(x => x.Id == @event.Id);
-            QuestItems.RemoveAll(x => x.Id == @event.Id);
+            Dispatch(() =>
+            {
+                Items.RemoveAll(x => x.Id == @event.Id);
+                QuestItems.RemoveAll(x => x.Id == @event.Id);
+            });
         }
 
         public Dictionary<TypeEnum, string> AITypes
@@ -211,6 +253,9 @@ namespace Client.Application.ViewModels
             Map = new MapViewModel(pathMover);
             ToggleAICommand = new RelayCommand(OnToggleAI);
             ChangeAITypeCommand = new RelayCommand(OnChangeAIType);
+
+            // All Handle methods dispatch to UI thread via Dispatch() -
+            // no need for EnableCollectionSynchronization
         }
 
         public ICommand ToggleAICommand { get; set; }

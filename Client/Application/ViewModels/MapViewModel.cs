@@ -242,6 +242,8 @@ namespace Client.Application.ViewModels
             ClearZoneCommand = new RelayCommand(OnClearZone);
             mousePosition.PropertyChanged += MousePosition_PropertyChanged;
             BindingOperations.EnableCollectionSynchronization(Path, pathCollectionLock);
+            BindingOperations.EnableCollectionSynchronization(Creatures, new object());
+            BindingOperations.EnableCollectionSynchronization(Drops, new object());
             this.pathMover = pathMover;
             this.pathMover.Path.CollectionChanged += PathMover_Path_CollectionChanged;
         }
