@@ -40,14 +40,11 @@ namespace Client.Domain.AI.State
             }
 
             // Save target ID while we still have a valid target.
-            // DoOnLeave may see hero.Target == null (server clears it on death)
-            // so we also track it here proactively.
+            // Save target position every tick — mob moves while being attacked,
+            // and server clears target on death so DoOnLeave may not have it.
             var ai = (AI)this.ai;
-            if (ai.LastTargetId == 0 || ai.LastTargetId != hero.Target.Id)
-            {
-                ai.LastTargetId = hero.Target.Id;
-                DebugLogger.Log($"AttackState.DoExecute: saved LastTargetId={hero.Target.Id}");
-            }
+            ai.LastTargetId = hero.Target.Id;
+            ai.LastTargetDeathPosition = hero.Target.Transform.Position.Clone() as Client.Domain.ValueObjects.Vector3;
 
             if (config.Combat.DontAttackPlayers && hero.Target.Type != CreatureTypeEnum.NPC)
             {
@@ -56,27 +53,7 @@ namespace Client.Domain.AI.State
 
             var distToTarget = hero.Transform.Position.Distance(hero.Target.Transform.Position);
 
-            // --- Skill usage (priority-sorted by SkillCondition.Priority) ---
-            var skill = Helper.GetSkillByConfig(worldHandler, config, hero, hero.Target);
-            DebugLogger.Log($"AttackState: SkillConditions check → skill={(skill != null ? $"id={skill.Id} name={skill.Name} ready={skill.IsReadyToUse} cost={skill.Cost}" : "null")}, heroMP={hero.VitalStats.Mp}, allSkills={worldHandler.GetAllSkills().Count}");
-            if (skill != null && skill.IsReadyToUse && hero.VitalStats.Mp >= skill.Cost)
-            {
-                var aiRef = (AI)this.ai;
-                var elapsed = (DateTime.Now - aiRef.LastSkillCastTime).TotalMilliseconds;
-                var delayMs = config.Combat.SkillCastDelayMs > 0 ? config.Combat.SkillCastDelayMs : 3500u;
-                if (elapsed < delayMs)
-                {
-                    DebugLogger.Log($"AttackState: DEBOUNCE — last skill cast {elapsed:F0}ms ago (limit={delayMs}ms), waiting");
-                    return;
-                }
-                    DebugLogger.Log($"AttackState: CASTING SkillCondition skill {skill.Id}");
-                    aiRef.LastSkillCastTime = DateTime.Now;
-                    TrackCast(hero.Target.Id);
-                    worldHandler.RequestUseSkill(skill.Id, false, false);
-                return;
-            }
-
-            // --- PrimaryAttackSkill: try directly if not covered by SkillConditions ---
+            // --- PrimaryAttackSkill: main nuke, always tries first ---
             if (config.Combat.PrimaryAttackSkillId != 0)
             {
                 var primarySkill = worldHandler.GetSkillById(config.Combat.PrimaryAttackSkillId);
@@ -97,6 +74,26 @@ namespace Client.Domain.AI.State
                     worldHandler.RequestUseSkill(primarySkill.Id, false, false);
                     return;
                 }
+            }
+
+            // --- SkillConditions: supplementary skills (Ice Bolt, etc.) when primary is on cooldown ---
+            var skill = Helper.GetSkillByConfig(worldHandler, config, hero, hero.Target);
+            DebugLogger.Log($"AttackState: SkillConditions check → skill={(skill != null ? $"id={skill.Id} name={skill.Name} ready={skill.IsReadyToUse} cost={skill.Cost}" : "null")}, heroMP={hero.VitalStats.Mp}, allSkills={worldHandler.GetAllSkills().Count}");
+            if (skill != null && skill.IsReadyToUse && hero.VitalStats.Mp >= skill.Cost)
+            {
+                var aiRef = (AI)this.ai;
+                var elapsed = (DateTime.Now - aiRef.LastSkillCastTime).TotalMilliseconds;
+                var delayMs = config.Combat.SkillCastDelayMs > 0 ? config.Combat.SkillCastDelayMs : 3500u;
+                if (elapsed < delayMs)
+                {
+                    DebugLogger.Log($"AttackState: DEBOUNCE — last skill cast {elapsed:F0}ms ago (limit={delayMs}ms), waiting");
+                    return;
+                }
+                    DebugLogger.Log($"AttackState: CASTING SkillCondition skill {skill.Id}");
+                    aiRef.LastSkillCastTime = DateTime.Now;
+                    TrackCast(hero.Target.Id);
+                    worldHandler.RequestUseSkill(skill.Id, false, false);
+                return;
             }
 
             // --- Kiting: step back if mob is too close AND no skill is ready ---

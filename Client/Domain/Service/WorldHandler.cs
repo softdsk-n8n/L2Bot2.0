@@ -375,16 +375,20 @@ namespace Client.Domain.Service
         {
             hero = @event.Hero;
 
+            // Reset count for new hero — each login/reconnect gets fresh invalidates
+            heroCreatedCount = 0;
+
+            // Seed skills immediately — doesn't need pipe, just creates Skill objects locally
+            SeedConfiguredSkills();
+
             // Invalidate causes C++ to resend all entities including creatures.
-            // This is needed for creatures to appear on map after bot connects.
-            // Limit to 3 invalidates to avoid infinite loop.
+            // Delay 3s to wait for pipe connection. Limit to 3 invalidates to avoid infinite loop.
             if (heroCreatedCount < 3)
             {
                 heroCreatedCount++;
                 Task.Run(async () =>
                 {
                     await Task.Delay(TimeSpan.FromSeconds(3));
-                    SeedConfiguredSkills();
                     SendMessage(OutgoingMessageTypeEnum.Invalidate);
                     DebugLogger.Log($"WorldHandler: Sent invalidate #{heroCreatedCount} after HeroCreated");
                 });
@@ -394,8 +398,9 @@ namespace Client.Domain.Service
         /// <summary>
         /// Seeds skills from the combat config (PrimaryAttackSkill + SkillConditions) into the skills dict.
         /// This makes them usable by AI even when C++ DLL hasn't sent skill data yet (late bot connect).
+        /// Call after config save to lazy-load newly configured skills.
         /// </summary>
-        private void SeedConfiguredSkills()
+        public void SeedConfiguredSkills()
         {
             try
             {

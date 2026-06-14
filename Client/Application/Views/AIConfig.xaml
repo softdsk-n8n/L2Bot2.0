@@ -101,6 +101,8 @@
                                                 </StackPanel>
                                                 <DataGrid
                                                     AutoGenerateColumns="False" 
+                                                    EnableRowVirtualization="False"
+                                                    EnableColumnVirtualization="False"
                                                     Height="180"
                                                     HorizontalAlignment="Left" 
                                                     VerticalAlignment="Top" 
@@ -115,13 +117,8 @@
                                                                     <ComboBox
                                                                         ItemsSource="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=DataContext.Skills}"
                                                                         SelectedValuePath="Id"
-                                                                        SelectedValue="{Binding Id}"
+                                                                        SelectedValue="{Binding Id, UpdateSourceTrigger=PropertyChanged}"
                                                                         DisplayMemberPath="Name">
-                                                                        <ComboBox.ItemsPanel>
-                                                                            <ItemsPanelTemplate>
-                                                                                <VirtualizingStackPanel />
-                                                                            </ItemsPanelTemplate>
-                                                                        </ComboBox.ItemsPanel>
                                                                     </ComboBox>
                                                                 </DataTemplate>
                                                             </DataGridTemplateColumn.CellTemplate>

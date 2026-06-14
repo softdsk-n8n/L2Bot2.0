@@ -281,6 +281,15 @@ namespace Client.Application.ViewModels
             config.Combat.SweeperSkillId = SweeperSkillId;
 
             SaveCollections();
+
+            // Seed newly configured skills into WorldHandler so AI can use them immediately
+            try
+            {
+                var wh = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                    .GetRequiredService<Client.Domain.Service.WorldHandler>(App.AppHost!.Services);
+                wh.SeedConfiguredSkills();
+            }
+            catch { /* ponytail: silent — WorldHandler not available yet */ }
         }
 
         private void LoadCollections(Config config)

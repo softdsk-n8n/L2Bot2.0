@@ -23,11 +23,11 @@ namespace Client.Domain.AI.State
                 return new List<Drop>();
             }
 
-            var drops = Helper.GetDropByConfig(worldHandler, config, hero);
-
-            // Filter by distance to the corpse we killed — ignore other players' drops.
-            // Uses PickupRadius from config as max allowed distance from death position.
             var deathPos = ((AI)this.ai).LastTargetDeathPosition;
+            var drops = Helper.GetDropByConfig(worldHandler, config, hero, deathPos);
+
+            // Double-check: filter by distance to the corpse we killed — ignore other players' drops.
+            // Uses PickupRadius from config as max allowed distance from death position.
             if (deathPos != null)
             {
                 for (var i = drops.Count - 1; i >= 0; i--)
@@ -58,7 +58,7 @@ namespace Client.Domain.AI.State
         /// </summary>
         public bool CanGiveUp(WorldHandler worldHandler, Config config)
         {
-            var delayMs = config.Combat.SweepDropDelayMs > 0 ? config.Combat.SweepDropDelayMs : 500;
+            var delayMs = config.Combat.SweepDropDelayMs > 0 ? config.Combat.SweepDropDelayMs : 2000;
             var elapsed = (DateTime.Now - _enterTime).TotalMilliseconds;
             var canGiveUp = elapsed > delayMs;
             DebugLogger.Log($"PickupState.CanGiveUp: elapsed={elapsed:F0}ms, delay={delayMs}ms => {canGiveUp}");

@@ -58,14 +58,15 @@ namespace Client.Domain.AI.Combat
             return null;
         }
 
-        public static List<Drop> GetDropByConfig(WorldHandler worldHandler, Config config, Hero hero)
+        public static List<Drop> GetDropByConfig(WorldHandler worldHandler, Config config, Hero hero, Vector3? deathPosition = null)
         {
             if (!config.Combat.PickupIfPossible)
             {
                 return new List<Drop>();
             }
 
-            var result = worldHandler.GetDropsSortedByDistanceToHero(config.Combat.PickupMaxDeltaZ)
+            var allDrops = worldHandler.GetDropsSortedByDistanceToHero(config.Combat.PickupMaxDeltaZ).ToList();
+            var result = allDrops.AsEnumerable()
                 .Where(x => !config.Combat.ExcludedItemIdsToPickup.ContainsKey(x.ItemId));
 
             if (config.Combat.IncludedItemIdsToPickup.Count > 0)
@@ -73,9 +74,48 @@ namespace Client.Domain.AI.Combat
                 result = result.Where(x => config.Combat.IncludedItemIdsToPickup.ContainsKey(x.ItemId));
             }
 
-            result = result.Where(x => x.Transform.Position.HorizontalDistance(hero.Transform.Position) <= config.Combat.PickupRadius);
+            // Two-stage pickup filter:
+            // 1. Try strict: drops within PickupRadius of deathPos (avoids foreign drops)
+            // 2. Fallback: drops within max(PickupRadius, attackDistance) of hero position
+            //    Server scatters drops far from deathPos, so strict often misses.
+            var radius = (short)config.Combat.PickupRadius;
+            var attackDist = config.Combat.AttackDistanceOverride > 0
+                ? config.Combat.AttackDistanceOverride
+                : (uint)GetAttackDistanceByConfigSimple(worldHandler, config);
+            var fallbackRadius = Math.Max(radius, attackDist);
 
-            return result.ToList();
+            List<Drop> filtered;
+
+            if (deathPosition != null)
+            {
+                // Stage 1: strict from deathPos
+                var strict = result.Where(x => x.Transform.Position.HorizontalDistance(deathPosition) <= radius).ToList();
+                if (strict.Count > 0)
+                {
+                    filtered = strict;
+                }
+                else
+                {
+                    // Stage 2: fallback to hero position — server scatters drops
+                    filtered = result.Where(x => x.Transform.Position.HorizontalDistance(hero.Transform.Position) <= fallbackRadius).ToList();
+                    if (allDrops.Count > 0 && filtered.Count == 0)
+                    {
+                        var heroDists = allDrops.Select(d => $"{d.Name}={d.Transform.Position.HorizontalDistance(hero.Transform.Position):F0}").ToList();
+                        DebugLogger.Log($"GetDropByConfig: allDrops={allDrops.Count}, strict=0 (radius={radius} from deathPos), fallback=0 (radius={fallbackRadius} from hero), fromHero=[{string.Join(", ", heroDists)}]");
+                    }
+                    else if (filtered.Count > 0)
+                    {
+                        DebugLogger.Log($"GetDropByConfig: strict=0, fallback={filtered.Count} drops within {fallbackRadius} of hero (deathPos too far)");
+                    }
+                }
+            }
+            else
+            {
+                // No death position — use hero pos with attackDistance
+                filtered = result.Where(x => x.Transform.Position.HorizontalDistance(hero.Transform.Position) <= fallbackRadius).ToList();
+            }
+
+            return filtered;
         }
 
         public static List<NPC> GetMobsToAttackByConfig(WorldHandler worldHandler, Config config, Hero hero)
@@ -158,6 +198,36 @@ namespace Client.Domain.AI.Combat
             return equippedWeapon != null && equippedWeapon.WeaponType == Enums.WeaponTypeEnum.Bow
                 ? config.Combat.AttackDistanceBow
                 : config.Combat.AttackDistanceMili;
+        }
+
+        /// <summary>
+        /// Simplified attack distance without hero/target — just checks skill ranges from config.
+        /// Used for pickup radius calculation where we don't have a specific target.
+        /// </summary>
+        public static uint GetAttackDistanceByConfigSimple(WorldHandler worldHandler, Config config)
+        {
+            if (config.Combat.AttackDistanceOverride != 0)
+                return config.Combat.AttackDistanceOverride;
+
+            if (config.Combat.PrimaryAttackSkillId != 0)
+            {
+                var skill = worldHandler.GetSkillById(config.Combat.PrimaryAttackSkillId);
+                if (skill != null && skill.Range > 0)
+                    return (uint)skill.Range;
+            }
+
+            var enabledConditions = config.Combat.SkillConditions.Where(x => x.Enabled).ToList();
+            uint maxRange = 0;
+            foreach (var cond in enabledConditions)
+            {
+                var condSkill = worldHandler.GetSkillById(cond.Id);
+                if (condSkill != null && condSkill.Range > maxRange)
+                    maxRange = (uint)condSkill.Range;
+            }
+            if (maxRange > 0)
+                return maxRange;
+
+            return config.Combat.AttackDistanceBow;
         }
     }
 }

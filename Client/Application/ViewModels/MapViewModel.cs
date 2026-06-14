@@ -106,11 +106,15 @@ namespace Client.Application.ViewModels
 
         private void HeroPosition_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            UpdateMap();
-            if (e.PropertyName == "X" || e.PropertyName == "Y")
+            // Must dispatch to UI thread — UpdateMap modifies ObservableCollection (Blocks, Path)
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                OnPropertyChanged("MousePosition");
-            }
+                UpdateMap();
+                if (e.PropertyName == "X" || e.PropertyName == "Y")
+                {
+                    OnPropertyChanged("MousePosition");
+                }
+            }));
         }
 
         private void UpdateMap()
