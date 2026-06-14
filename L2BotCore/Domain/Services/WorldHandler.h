@@ -171,12 +171,8 @@ namespace L2Bot::Domain::Services
 
 		void Invalidate()
 		{
-			ServiceLocator::GetInstance().GetLogger()->Info(L"Invalidate() called - resetting builder and repos");
+			ServiceLocator::GetInstance().GetLogger()->Info(L"Invalidate() called - resetting builder only, repos keep current state");
 			m_OutgoingMessageBuilder.Reset();
-			for (const auto& kvp : m_Repositories)
-			{
-				kvp.second.Reset();
-			}
 			ServiceLocator::GetInstance().GetLogger()->Info(L"Invalidate() completed");
 		}
 
