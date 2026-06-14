@@ -84,6 +84,17 @@ namespace Client.Application.ViewModels
             {
                 if (hero != null)
                 {
+                    // Already exists — position updates via PropertyChanged on the creature object
+                    if (Creatures.Any(x => x.Id == @event.Creature.Id))
+                    {
+                        return;
+                    }
+                    var npc = @event.Creature as NPC;
+                    // Only show hostile NPCs in the creature list — skip passive NPCs
+                    if (npc != null && !npc.IsHostile)
+                    {
+                        return;
+                    }
                     Creatures.Add(new CreatureListViewModel(worldHandler, pathMover, @event.Creature, hero));
                     AddCreature(@event.Creature);
                 }
@@ -110,6 +121,11 @@ namespace Client.Application.ViewModels
             {
                 if (hero != null)
                 {
+                    // Already exists — skip duplicate
+                    if (Drops.Any(x => x.Id == @event.Drop.Id))
+                    {
+                        return;
+                    }
                     Drops.Add(new DropListViewModel(worldHandler, pathMover, @event.Drop, hero));
                     Map.Drops.Add(new DropMapViewModel(worldHandler, pathMover, @event.Drop, hero));
                 }
@@ -211,6 +227,22 @@ namespace Client.Application.ViewModels
         {
             if (hero != null)
             {
+                // Already on map — position updates via PropertyChanged
+                if (Map.Creatures.Any(x => x.Id == creature.Id))
+                {
+                    return;
+                }
+                // Passive NPCs (guards, merchants, etc.) — skip
+                var npc = creature as NPC;
+                if (npc != null && !npc.IsHostile && !npc.VitalStats.IsDead)
+                {
+                    return;
+                }
+                // Too far — skip
+                if (creature.Transform.Position.HorizontalDistance(hero.Transform.Position) > 2000)
+                {
+                    return;
+                }
                 Map.Creatures.Add(new CreatureMapViewModel(worldHandler, pathMover, creature, hero));
             }
         }

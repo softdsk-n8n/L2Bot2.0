@@ -22,15 +22,25 @@ namespace Client.Domain.Service
 
             if (operation == MessageOperationEnum.Create)
             {
-                var entity = factory.Create(content);
-
-                if (entity == null)
+                if (entities.ContainsKey(baseEntity.Id))
                 {
-                    throw new ArgumentNullException(nameof(entity));
+                    // Entity already exists (Invalidate resend) — update in place to preserve
+                    // PropertyChanged subscriptions in ViewModels
+                    factory.Update(entities[baseEntity.Id], content);
+                    OnUpdate(entities[baseEntity.Id]);
                 }
-                entities[baseEntity.Id] = entity;
+                else
+                {
+                    var entity = factory.Create(content);
 
-                OnCreate(entity);
+                    if (entity == null)
+                    {
+                        throw new ArgumentNullException(nameof(entity));
+                    }
+                    entities[baseEntity.Id] = entity;
+
+                    OnCreate(entity);
+                }
             }
             else if (operation == MessageOperationEnum.Update)
             {
@@ -39,6 +49,17 @@ namespace Client.Domain.Service
                     var entity = entities[baseEntity.Id];
                     factory.Update(entities[entity.Id], content);
                     OnUpdate(entities[entity.Id]);
+                }
+                else
+                {
+                    // Entity not yet created — treat update as create
+                    // C++ DLL sends existing entities as "update" on reconnect/invalidate
+                    var entity = factory.Create(content);
+                    if (entity != null)
+                    {
+                        entities[baseEntity.Id] = entity;
+                        OnCreate(entity);
+                    }
                 }
             }
             else if (operation == MessageOperationEnum.Delete)

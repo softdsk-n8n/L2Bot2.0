@@ -375,17 +375,25 @@ namespace Client.Domain.Service
         {
             hero = @event.Hero;
 
-            // Seed skills configured in combat config into the Skills tab
-            Task.Run(async () =>
+            // Invalidate causes C++ to resend all entities including creatures.
+            // This is needed for creatures to appear on map after bot connects.
+            // Limit to 3 invalidates to avoid infinite loop.
+            if (heroCreatedCount < 3)
             {
-                await Task.Delay(TimeSpan.FromSeconds(2));
-                SeedConfiguredSkills();
-            });
+                heroCreatedCount++;
+                Task.Run(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(3));
+                    SeedConfiguredSkills();
+                    SendMessage(OutgoingMessageTypeEnum.Invalidate);
+                    DebugLogger.Log($"WorldHandler: Sent invalidate #{heroCreatedCount} after HeroCreated");
+                });
+            }
         }
 
         /// <summary>
         /// Seeds skills from the combat config (PrimaryAttackSkill + SkillConditions) into the skills dict.
-        /// This makes them appear in the Skills tab even when C++ DLL doesn't send skill data.
+        /// This makes them usable by AI even when C++ DLL hasn't sent skill data yet (late bot connect).
         /// </summary>
         private void SeedConfiguredSkills()
         {
@@ -418,7 +426,20 @@ namespace Client.Domain.Service
 
         public void Handle(CreatureCreatedEvent @event)
         {
-            if (!creatures.ContainsKey(@event.Creature.Id))
+            if (creatures.ContainsKey(@event.Creature.Id))
+            {
+                // Update existing creature's properties instead of replacing
+                var existing = creatures[@event.Creature.Id];
+                existing.Transform.Position.X = @event.Creature.Transform.Position.X;
+                existing.Transform.Position.Y = @event.Creature.Transform.Position.Y;
+                existing.Transform.Position.Z = @event.Creature.Transform.Position.Z;
+                existing.VitalStats.Hp = @event.Creature.VitalStats.Hp;
+                existing.VitalStats.MaxHp = @event.Creature.VitalStats.MaxHp;
+                existing.VitalStats.Mp = @event.Creature.VitalStats.Mp;
+                existing.VitalStats.MaxMp = @event.Creature.VitalStats.MaxMp;
+                existing.VitalStats.IsDead = @event.Creature.VitalStats.IsDead;
+            }
+            else
             {
                 creatures.TryAdd(@event.Creature.Id, @event.Creature);
             }
@@ -480,6 +501,7 @@ namespace Client.Domain.Service
         }
 
         private Hero? hero;
+        private int heroCreatedCount = 0;
         private ConcurrentDictionary<uint, CreatureInterface> creatures = new ConcurrentDictionary<uint, CreatureInterface>();
         private ConcurrentDictionary<uint, Drop> drops = new ConcurrentDictionary<uint, Drop>();
         private ConcurrentDictionary<uint, Skill> skills = new ConcurrentDictionary<uint, Skill>();
