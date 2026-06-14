@@ -151,16 +151,15 @@ namespace Client.Application.ViewModels
         {
             Dispatch(() =>
             {
-                if (hero != null)
+                if (@event.Skill.IsActive)
                 {
-                    if (@event.Skill.IsActive)
-                    {
+                    if (!ActiveSkills.Any(x => x.Id == @event.Skill.Id))
                         ActiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
-                    }
-                    else
-                    {
+                }
+                else
+                {
+                    if (!PassiveSkills.Any(x => x.Id == @event.Skill.Id))
                         PassiveSkills.Add(new SkillListViewModel(worldHandler, @event.Skill));
-                    }
                 }
             });
         }
@@ -178,16 +177,15 @@ namespace Client.Application.ViewModels
         {
             Dispatch(() =>
             {
-                if (hero != null)
+                if (@event.Item is EtcItem etcItem && etcItem.IsQuest)
                 {
-                    if (@event.Item is EtcItem && ((EtcItem)@event.Item).IsQuest)
-                    {
+                    if (!QuestItems.Any(x => x.Id == @event.Item.Id))
                         QuestItems.Add(new ItemListViewModel(worldHandler, @event.Item));
-                    }
-                    else
-                    {
+                }
+                else
+                {
+                    if (!Items.Any(x => x.Id == @event.Item.Id))
                         Items.Add(new ItemListViewModel(worldHandler, @event.Item));
-                    }
                 }
             });
         }

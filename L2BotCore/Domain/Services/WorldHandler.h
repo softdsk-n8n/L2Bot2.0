@@ -160,10 +160,15 @@ namespace L2Bot::Domain::Services
 
 			for (const auto& kvp : m_Repositories)
 			{
-				auto& entities = kvp.second.GetEntities();
+				try {
+					auto& entities = kvp.second.GetEntities();
 
-				const auto& messages = m_OutgoingMessageBuilder.Build(kvp.first, entities);
-				result.insert(result.end(), messages.begin(), messages.end());
+					const auto& messages = m_OutgoingMessageBuilder.Build(kvp.first, entities);
+					result.insert(result.end(), messages.begin(), messages.end());
+				}
+				catch (const RuntimeException& e) {
+					ServiceLocator::GetInstance().GetLogger()->Warning(e.Message());
+				}
 			}
 
 			return result;
