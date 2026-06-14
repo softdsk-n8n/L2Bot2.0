@@ -10,6 +10,7 @@
 #include "Domain/Events/SkillCancelledEvent.h"
 #include "Domain/Events/AbnormalEffectChangedEvent.h"
 #include "Domain/Events/HeroDeletedEvent.h"
+#include "Domain/Events/HeroCreatedEvent.h"
 #include "Domain/Events/GameEngineTickedEvent.h"
 #include "../GameStructs/NetworkHandlerWrapper.h"
 #include "../../../Common/TimerMap.h"
@@ -67,6 +68,9 @@ namespace Interlude
 			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Subscribe(Events::HeroDeletedEvent::name, [this](const Events::Event& evt) {
 				OnHeroDeleted(evt);
 			});
+			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Subscribe(Events::HeroCreatedEvent::name, [this](const Events::Event& evt) {
+				OnHeroCreated(evt);
+			});
 			Services::ServiceLocator::GetInstance().GetEventDispatcher()->Subscribe(Events::GameEngineTickedEvent::name, [this](const Events::Event& evt) {
 				OnGameEngineTicked(evt);
 			});
@@ -99,6 +103,16 @@ namespace Interlude
 			if (evt.GetName() == Events::HeroDeletedEvent::name)
 			{
 				Reset();
+			}
+		}
+
+		void OnHeroCreated(const Events::Event& evt)
+		{
+			std::shared_lock<std::shared_timed_mutex>(m_Mutex);
+			if (evt.GetName() == Events::HeroCreatedEvent::name)
+			{
+				// Skills will be populated when server sends SkillList packet
+				// (triggered by OnSkillListPacket hook)
 			}
 		}
 

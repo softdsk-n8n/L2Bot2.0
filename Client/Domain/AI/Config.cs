@@ -43,7 +43,7 @@ namespace Client.Domain.AI
             public bool KiteEnabled { get; set; } = false;
             public uint KiteDistance { get; set; } = 200;
             public bool WaitForSkillCooldown { get; set; } = false;
-            public uint SkillCastDelayMs { get; set; } = 3500;
+            public uint SkillCastDelayMs { get; set; } = 500;
             public List<SkillCondition> SkillConditions { get; set; } = new List<SkillCondition>();
             public byte MaxPassableHeight { get; set; } = 30;
 
@@ -71,7 +71,7 @@ namespace Client.Domain.AI
             public uint SkillId { get; set; } = 0;
         }
 
-        public uint DelayBetweenTransitions { get; set; } = 250;
+        public uint DelayBetweenTransitions { get; set; } = 100;
 
         public CombatSection Combat { get; } = new CombatSection();
 

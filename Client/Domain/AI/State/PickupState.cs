@@ -58,7 +58,7 @@ namespace Client.Domain.AI.State
         /// </summary>
         public bool CanGiveUp(WorldHandler worldHandler, Config config)
         {
-            var delayMs = config.Combat.SweepDropDelayMs > 0 ? config.Combat.SweepDropDelayMs : 1500;
+            var delayMs = config.Combat.SweepDropDelayMs > 0 ? config.Combat.SweepDropDelayMs : 500;
             var elapsed = (DateTime.Now - _enterTime).TotalMilliseconds;
             var canGiveUp = elapsed > delayMs;
             DebugLogger.Log($"PickupState.CanGiveUp: elapsed={elapsed:F0}ms, delay={delayMs}ms => {canGiveUp}");
@@ -74,18 +74,33 @@ namespace Client.Domain.AI.State
 
         protected override void DoExecute(WorldHandler worldHandler, Config config, AsyncPathMoverInterface asyncPathMover, Hero hero)
         {
-            if (!hero.Transform.IsMoving)
+            var drops = GetDrops(worldHandler, config);
+            if (drops.Count > 0)
             {
-                var drops = GetDrops(worldHandler, config);
-                if (drops.Count > 0)
+                var nearest = drops[0];
+                var dist = hero.Transform.Position.HorizontalDistance(nearest.Transform.Position);
+                // If close enough, pick up immediately (even while moving)
+                if (dist <= 50)
                 {
-                    DebugLogger.Log($"PickupState: -> RequestPickUp({drops[0].Name})");
-                    worldHandler.RequestPickUp(drops[0].Id);
-                    if (!pickupAttempts.ContainsKey(drops[0].Id))
+                    // Debounce: don't spam RequestPickUp every tick
+                    var sinceLast = (DateTime.Now - _lastPickupTime).TotalMilliseconds;
+                    if (sinceLast < 300)
                     {
-                        pickupAttempts[drops[0].Id] = 0;
+                        return;
                     }
-                    pickupAttempts[drops[0].Id]++;
+                    _lastPickupTime = DateTime.Now;
+                    DebugLogger.Log($"PickupState: -> RequestPickUp({nearest.Name}) dist={dist:F0}");
+                    worldHandler.RequestPickUp(nearest.Id);
+                    if (!pickupAttempts.ContainsKey(nearest.Id))
+                    {
+                        pickupAttempts[nearest.Id] = 0;
+                    }
+                    pickupAttempts[nearest.Id]++;
+                }
+                else
+                {
+                    // Move towards drop first
+                    asyncPathMover.MoveAsync(nearest.Transform.Position, config.Combat.MaxPassableHeight);
                 }
             }
         }
@@ -96,6 +111,7 @@ namespace Client.Domain.AI.State
         }
 
         private DateTime _enterTime = DateTime.MinValue;
+        private DateTime _lastPickupTime = DateTime.MinValue;
         private Dictionary<uint, short> pickupAttempts = new Dictionary<uint, short>();
     }
 }
