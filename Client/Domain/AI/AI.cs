@@ -55,6 +55,7 @@ namespace Client.Domain.AI
         public uint LastTargetId { get; set; } = 0;
         public Client.Domain.ValueObjects.Vector3? LastTargetDeathPosition { get; set; } = null;
         public DateTime LastSkillCastTime { get; set; } = DateTime.MinValue;
+        public bool OvercastDetected { get; set; } = false;
 
         public void Handle(ChatMessageCreatedEvent @event)
         {
@@ -81,6 +82,16 @@ namespace Client.Domain.AI
                 case 343: // SWEEPER_FAILED
                     SweepConfirmed = true;
                     DebugLogger.Log($"AI.Handle: SweepConfirmed=true (msgId={msgId})");
+                    break;
+
+                case 0:   // INVALID_TARGET / TARGET_NOT_FOUND — mob is dead/gone
+                case 46:  // CANNOT_USE_SKILL_ON_TARGET
+                    // Only flag if we're in Attack state — otherwise it's login spam
+                    if (CurrentState == BaseState.Type.Attack)
+                    {
+                        OvercastDetected = true;
+                        DebugLogger.Log($"AI.Handle: OvercastDetected=true — invalid target (msgId={msgId})");
+                    }
                     break;
 
                 default:
@@ -142,6 +153,7 @@ namespace Client.Domain.AI
             SpoilAttemptedTargetId = 0;
             LastTargetId = 0;
             LastTargetDeathPosition = null;
+            OvercastDetected = false;
         }
 
         /// <summary>

@@ -24,6 +24,21 @@ namespace Client.Domain.AI.State
                 return;
             }
 
+            // Don't cast on dead targets — avoids "invalid target" spam
+            if (hero.Target.VitalStats.IsDead)
+            {
+                return;
+            }
+
+            // Anti-spam: if we've cast many skills on same target without it dying,
+            // the mob is likely dead but C++ DLL hasn't updated IsDead yet.
+            // Flag it so TransitionBuilder can transition to Pickup.
+            if (hero.Target.Id == lastOvercastTargetId && overcastCount >= MAX_OVERCAST)
+            {
+                DebugLogger.Log($"AttackState: OVERCAST — cast {overcastCount} times on target {hero.Target.Id}, flagging as dead");
+                ((AI)this.ai).OvercastDetected = true;
+            }
+
             // Save target ID while we still have a valid target.
             // DoOnLeave may see hero.Target == null (server clears it on death)
             // so we also track it here proactively.
@@ -54,9 +69,10 @@ namespace Client.Domain.AI.State
                     DebugLogger.Log($"AttackState: DEBOUNCE — last skill cast {elapsed:F0}ms ago (limit={delayMs}ms), waiting");
                     return;
                 }
-                DebugLogger.Log($"AttackState: CASTING SkillCondition skill {skill.Id}");
-                aiRef.LastSkillCastTime = DateTime.Now;
-                worldHandler.RequestUseSkill(skill.Id, false, false);
+                    DebugLogger.Log($"AttackState: CASTING SkillCondition skill {skill.Id}");
+                    aiRef.LastSkillCastTime = DateTime.Now;
+                    TrackCast(hero.Target.Id);
+                    worldHandler.RequestUseSkill(skill.Id, false, false);
                 return;
             }
 
@@ -77,6 +93,7 @@ namespace Client.Domain.AI.State
                     }
                     DebugLogger.Log($"AttackState: CASTING PrimarySkill {primarySkill.Id}");
                     aiRef2.LastSkillCastTime = DateTime.Now;
+                    TrackCast(hero.Target.Id);
                     worldHandler.RequestUseSkill(primarySkill.Id, false, false);
                     return;
                 }
@@ -104,15 +121,34 @@ namespace Client.Domain.AI.State
                 }
             }
 
-            // --- WaitForSkillCooldown: check if primary skill is on cooldown ---
+            // --- WaitForSkillCooldown: wait for ANY configured skill on cooldown ---
             bool shouldWaitForCooldown = false;
-            if (config.Combat.WaitForSkillCooldown && config.Combat.PrimaryAttackSkillId != 0)
+            if (config.Combat.WaitForSkillCooldown)
             {
-                var primarySkill = worldHandler.GetSkillById(config.Combat.PrimaryAttackSkillId);
-                if (primarySkill != null && !primarySkill.IsReadyToUse && hero.VitalStats.Mp >= primarySkill.Cost)
+                if (config.Combat.PrimaryAttackSkillId != 0)
                 {
-                    shouldWaitForCooldown = true;
-                    DebugLogger.Log($"AttackState: WAITING for primary skill {primarySkill.Id} cooldown");
+                    var primarySkill = worldHandler.GetSkillById(config.Combat.PrimaryAttackSkillId);
+                    if (primarySkill != null && !primarySkill.IsReadyToUse && hero.VitalStats.Mp >= primarySkill.Cost)
+                    {
+                        shouldWaitForCooldown = true;
+                    }
+                }
+                // Also check SkillCondition skills — if any enabled condition skill is on cooldown, wait
+                if (!shouldWaitForCooldown)
+                {
+                    foreach (var cond in config.Combat.SkillConditions.Where(x => x.Enabled))
+                    {
+                        var condSkill = worldHandler.GetSkillById(cond.Id);
+                        if (condSkill != null && !condSkill.IsReadyToUse && hero.VitalStats.Mp >= condSkill.Cost)
+                        {
+                            shouldWaitForCooldown = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldWaitForCooldown)
+                {
+                    DebugLogger.Log($"AttackState: WAITING for skill cooldown");
                 }
             }
 
@@ -135,13 +171,14 @@ namespace Client.Domain.AI.State
 
         protected override void DoOnEnter(WorldHandler worldHandler, Config config, Hero hero)
         {
-            // Reset attack tracking so we send a fresh Attack packet
-            // when entering combat with a new target.
             lastAttackTargetId = 0;
+            overcastCount = 0;
+            lastOvercastTargetId = 0;
         }
 
         protected override void DoOnLeave(WorldHandler worldHandler, Config config, Hero hero)
         {
+            ((AI)this.ai).OvercastDetected = false;
             // Intentionally left empty — we do NOT touch auto-shots at all.
             // If the target died and was spoiled, remember its ID for SweepState
             if (hero.Target != null && hero.Target.VitalStats.IsDead)
@@ -161,5 +198,21 @@ namespace Client.Domain.AI.State
         }
 
         private uint lastAttackTargetId = 0;
+        private uint lastOvercastTargetId = 0;
+        private int overcastCount = 0;
+        private const int MAX_OVERCAST = 3; // After 3 casts on same target, assume dead
+
+        private void TrackCast(uint targetId)
+        {
+            if (targetId != lastOvercastTargetId)
+            {
+                lastOvercastTargetId = targetId;
+                overcastCount = 1;
+            }
+            else
+            {
+                overcastCount++;
+            }
+        }
     }
 }

@@ -199,11 +199,13 @@ namespace Client.Domain.AI.Combat
                         }
 
                         // The mob we attacked is gone if: no valid target, target changed,
-                        // OR target is dead (game keeps dead mobs as valid targets).
+                        // OR target is dead (game keeps dead mobs as valid targets),
+                        // OR overcast detected (mob likely dead but DLL not updated).
                         bool targetIsDead = worldHandler.Hero.Target != null && worldHandler.Hero.Target.VitalStats.IsDead;
                         bool targetIsGone = !worldHandler.Hero.HasValidTarget
                             || (worldHandler.Hero.Target != null && worldHandler.Hero.Target.Id != ai.LastTargetId)
-                            || targetIsDead;
+                            || targetIsDead
+                            || ai.OvercastDetected;
 
                         return targetIsGone;
                     }),

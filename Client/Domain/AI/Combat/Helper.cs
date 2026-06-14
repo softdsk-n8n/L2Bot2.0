@@ -128,26 +128,36 @@ namespace Client.Domain.AI.Combat
                 }
             }
 
-            // 2. AttackDistanceOverride — manual override
+            // 2. SkillCondition skills — use the max range among enabled conditions
+            var enabledConditions = config.Combat.SkillConditions.Where(x => x.Enabled).OrderBy(x => x.Priority).ToList();
+            if (enabledConditions.Count > 0)
+            {
+                uint maxRange = 0;
+                foreach (var cond in enabledConditions)
+                {
+                    var condSkill = worldHandler.GetSkillById(cond.Id);
+                    if (condSkill != null && condSkill.Range > maxRange)
+                    {
+                        maxRange = (uint)condSkill.Range;
+                    }
+                }
+                if (maxRange > 0)
+                {
+                    return maxRange;
+                }
+            }
+
+            // 3. AttackDistanceOverride — manual override
             if (config.Combat.AttackDistanceOverride != 0)
             {
                 return config.Combat.AttackDistanceOverride;
             }
 
-            // 3. Fallback: weapon-based + skill range (original logic)
-            Skill? skill = GetSkillByConfig(worldHandler, config, hero, target);
-
+            // 4. Fallback: weapon-based
             var equippedWeapon = worldHandler.GetEquippedWeapon();
-            var expectedDistance = equippedWeapon != null && equippedWeapon.WeaponType == Enums.WeaponTypeEnum.Bow
+            return equippedWeapon != null && equippedWeapon.WeaponType == Enums.WeaponTypeEnum.Bow
                 ? config.Combat.AttackDistanceBow
                 : config.Combat.AttackDistanceMili;
-
-            if (skill != null)
-            {
-                expectedDistance = (uint)skill.Range;
-            }
-
-            return expectedDistance;
         }
     }
 }
