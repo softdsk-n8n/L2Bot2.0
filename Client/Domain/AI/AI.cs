@@ -54,6 +54,7 @@ namespace Client.Domain.AI
         public uint SpoilAttemptedTargetId { get; set; } = 0;
         public uint LastTargetId { get; set; } = 0;
         public Client.Domain.ValueObjects.Vector3? LastTargetDeathPosition { get; set; } = null;
+        public DateTime LastSkillCastTime { get; set; } = DateTime.MinValue;
 
         public void Handle(ChatMessageCreatedEvent @event)
         {
@@ -155,6 +156,7 @@ namespace Client.Domain.AI
             }
             CurrentState = BaseState.Type.Idle;
             ResetSpoilState();
+            LastSkillCastTime = DateTime.MinValue;
             DebugLogger.Log("AI.ResetCombat: reset to Idle, state cleared");
         }
 

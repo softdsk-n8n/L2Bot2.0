@@ -28,7 +28,7 @@ namespace Client.Domain.AI.State
             }
 
             var distanceToPrevPosition = targetPosition != null ? targetPosition.HorizontalDistance(target.Transform.Position) : 0;
-            var routeNeedsToBeAdjusted = MathF.Abs(distanceToPrevPosition) > config.Combat.AttackDistanceMili;
+            var routeNeedsToBeAdjusted = MathF.Abs(distanceToPrevPosition) > Helper.GetAttackDistanceByConfig(worldHandler, config, hero, target);
             if (routeNeedsToBeAdjusted)
             {
                 asyncPathMover.Unlock();

@@ -35,14 +35,24 @@ namespace Client.Application.ViewModels
 
         public class SkillCondition : ObservableObject
         {
+            private bool enabled = true;
             private uint id;
+            private int priority = 0;
+            private bool maxTargetPercentHpEnabled = false;
             private byte maxTargetPercentHp = 100;
+            private bool minPlayerPercentMpEnabled = false;
             private byte minPlayerPercentMp = 0;
+            private bool maxPlayerPercentHpEnabled = false;
             private byte maxPlayerPercentHp = 100;
 
+            public bool Enabled { get => enabled; set { if (value != enabled) { enabled = value; OnPropertyChanged(); } } }
             public uint Id { get => id; set { if (value != id) { id = value; OnPropertyChanged(); } } }
+            public int Priority { get => priority; set { if (value != priority) { priority = value; OnPropertyChanged(); } } }
+            public bool MaxTargetPercentHpEnabled { get => maxTargetPercentHpEnabled; set { if (value != maxTargetPercentHpEnabled) { maxTargetPercentHpEnabled = value; OnPropertyChanged(); } } }
             public byte MaxTargetPercentHp { get => maxTargetPercentHp; set { if (value != maxTargetPercentHp) { maxTargetPercentHp = value; OnPropertyChanged(); } } }
+            public bool MinPlayerPercentMpEnabled { get => minPlayerPercentMpEnabled; set { if (value != minPlayerPercentMpEnabled) { minPlayerPercentMpEnabled = value; OnPropertyChanged(); } } }
             public byte MinPlayerPercentMp { get => minPlayerPercentMp; set { if (value != minPlayerPercentMp) { minPlayerPercentMp = value; OnPropertyChanged(); } } }
+            public bool MaxPlayerPercentHpEnabled { get => maxPlayerPercentHpEnabled; set { if (value != maxPlayerPercentHpEnabled) { maxPlayerPercentHpEnabled = value; OnPropertyChanged(); } } }
             public byte MaxPlayerPercentHp { get => maxPlayerPercentHp; set { if (value != maxPlayerPercentHp) { maxPlayerPercentHp = value; OnPropertyChanged(); } } }
         }
 
@@ -94,6 +104,8 @@ namespace Client.Application.ViewModels
             AddVertexCommand = new RelayCommand(OnAddVertex);
             RemoveVertexCommand = new RelayCommand(OnRemoveVertex);
             ClearVerticesCommand = new RelayCommand(OnClearVertices);
+            AddSkillConditionCommand = new RelayCommand(OnAddSkillCondition);
+            RemoveSkillConditionCommand = new RelayCommand(OnRemoveSkillCondition);
             Skills = new ObservableCollection<ObjectInfo>(skillInfoHelper.GetAllSkills().Select(x => x.Value).Where(x => x.IsActive).ToList());
         }
 
@@ -106,6 +118,8 @@ namespace Client.Application.ViewModels
         public ICommand AddVertexCommand { get; }
         public ICommand RemoveVertexCommand { get; }
         public ICommand ClearVerticesCommand { get; }
+        public ICommand AddSkillConditionCommand { get; }
+        public ICommand RemoveSkillConditionCommand { get; }
         public Action? Close {  get; set; }
         public Action<string>? OpenSaveDialog {  get; set; }
         public Func<string?>? OpenOpenDialog {  get; set; }
@@ -132,11 +146,18 @@ namespace Client.Application.ViewModels
         public byte RestStartPercentMp { get => restStartPercentMp; set { if (value != restStartPercentMp) { restStartPercentMp = value; OnPropertyChanged(); } } }
         public byte RestEndPercentMp { get => restEndPercentMp; set { if (value != restEndPercentMp) { restEndPercentMp = value; OnPropertyChanged(); } } }
         public ObservableCollection<SkillCondition> CombatSkills { get; set; } = new ObservableCollection<SkillCondition>();
+        public SkillCondition? SelectedSkillCondition { get => selectedSkillCondition; set { if (value != selectedSkillCondition) { selectedSkillCondition = value; OnPropertyChanged(); } } }
         public bool AutoUseShots { get => autoUseShots; set { if (value != autoUseShots) { autoUseShots = value; OnPropertyChanged(); } } }
         public bool DontAttackPlayers { get => dontAttackPlayers; set { if (value != dontAttackPlayers) { dontAttackPlayers = value; OnPropertyChanged(); } } }
         public uint AttackDistanceMili { get => attackDistanceMili; set { if (value != attackDistanceMili) { attackDistanceMili = value; OnPropertyChanged(); } } }
         public uint AttackDistanceBow { get => attackDistanceBow; set { if (value != attackDistanceBow) { attackDistanceBow = value; OnPropertyChanged(); } } }
         public bool UseOnlySkills { get => useOnlySkills; set { if (value != useOnlySkills) { useOnlySkills = value; OnPropertyChanged(); } } }
+        public uint PrimaryAttackSkillId { get => primaryAttackSkillId; set { if (value != primaryAttackSkillId) { primaryAttackSkillId = value; OnPropertyChanged(); } } }
+        public uint AttackDistanceOverride { get => attackDistanceOverride; set { if (value != attackDistanceOverride) { attackDistanceOverride = value; OnPropertyChanged(); } } }
+        public bool KiteEnabled { get => kiteEnabled; set { if (value != kiteEnabled) { kiteEnabled = value; OnPropertyChanged(); } } }
+        public uint KiteDistance { get => kiteDistance; set { if (value != kiteDistance) { kiteDistance = value; OnPropertyChanged(); } } }
+        public bool WaitForSkillCooldown { get => waitForSkillCooldown; set { if (value != waitForSkillCooldown) { waitForSkillCooldown = value; OnPropertyChanged(); } } }
+        public uint SkillCastDelayMs { get => skillCastDelayMs; set { if (value != skillCastDelayMs) { skillCastDelayMs = value; OnPropertyChanged(); } } }
         public CombatZone Zone { get => combatZone; set { if (value != combatZone) { combatZone = value; OnPropertyChanged(); } } }
         public byte DelevelingTargetLevel { get => delevelingTargetLevel; set { if (value != delevelingTargetLevel) { delevelingTargetLevel = value; OnPropertyChanged(); } } }
         public uint DelevelingAttackDistance { get => delevelingAttackDistance; set { if (value != delevelingAttackDistance) { delevelingAttackDistance = value; OnPropertyChanged(); } } }
@@ -179,6 +200,12 @@ namespace Client.Application.ViewModels
             AttackDistanceMili = config.Combat.AttackDistanceMili;
             AttackDistanceBow = config.Combat.AttackDistanceBow;
             UseOnlySkills = config.Combat.UseOnlySkills;
+            PrimaryAttackSkillId = config.Combat.PrimaryAttackSkillId;
+            AttackDistanceOverride = config.Combat.AttackDistanceOverride;
+            KiteEnabled = config.Combat.KiteEnabled;
+            KiteDistance = config.Combat.KiteDistance;
+            WaitForSkillCooldown = config.Combat.WaitForSkillCooldown;
+            SkillCastDelayMs = config.Combat.SkillCastDelayMs;
             Zone.X = config.Combat.Zone.Center.X;
             Zone.Y = config.Combat.Zone.Center.Y;
             Zone.Radius = config.Combat.Zone.Radius;
@@ -222,6 +249,12 @@ namespace Client.Application.ViewModels
             config.Combat.AttackDistanceMili = AttackDistanceMili;
             config.Combat.AttackDistanceBow = AttackDistanceBow;
             config.Combat.UseOnlySkills = UseOnlySkills;
+            config.Combat.PrimaryAttackSkillId = PrimaryAttackSkillId;
+            config.Combat.AttackDistanceOverride = AttackDistanceOverride;
+            config.Combat.KiteEnabled = KiteEnabled;
+            config.Combat.KiteDistance = KiteDistance;
+            config.Combat.WaitForSkillCooldown = WaitForSkillCooldown;
+            config.Combat.SkillCastDelayMs = SkillCastDelayMs;
             config.Combat.Zone.Type = Zone.Type;
             config.Combat.Zone.Center.X = Zone.X;
             config.Combat.Zone.Center.Y = Zone.Y;
@@ -298,11 +331,18 @@ namespace Client.Application.ViewModels
             CombatSkills.RemoveAll();
             config.Combat.SkillConditions.ForEach(x =>
             {
+                // Skip empty conditions (Id=0 means no skill selected)
+                if (x.Id == 0) return;
                 CombatSkills.Add(new SkillCondition()
                 {
+                    Enabled = x.Enabled,
                     Id = x.Id,
+                    Priority = x.Priority,
+                    MaxTargetPercentHpEnabled = x.MaxTargetPercentHpEnabled,
                     MaxTargetPercentHp = x.MaxTargetPercentHp,
+                    MinPlayerPercentMpEnabled = x.MinPlayerPercentMpEnabled,
                     MinPlayerPercentMp = x.MinPlayerPercentMp,
+                    MaxPlayerPercentHpEnabled = x.MaxPlayerPercentHpEnabled,
                     MaxPlayerPercentHp = x.MaxPlayerPercentHp
                 });
             });
@@ -321,11 +361,16 @@ namespace Client.Application.ViewModels
             config.Combat.ExcludedSpoilMobs = SelectedExcludedSpoilMobs.ToDictionary(x => x.Id, x => true);
             config.Combat.IncludedSpoilMobs = SelectedIncludedSpoilMobs.ToDictionary(x => x.Id, x => true);
 
-            config.Combat.SkillConditions = CombatSkills.Select(x => new Config.SkillCondition()
+            config.Combat.SkillConditions = CombatSkills.Where(x => x.Id != 0).Select(x => new Config.SkillCondition()
             {
+                Enabled = x.Enabled,
                 Id = x.Id,
+                Priority = x.Priority,
+                MaxTargetPercentHpEnabled = x.MaxTargetPercentHpEnabled,
                 MaxTargetPercentHp = x.MaxTargetPercentHp,
+                MinPlayerPercentMpEnabled = x.MinPlayerPercentMpEnabled,
                 MinPlayerPercentMp = x.MinPlayerPercentMp,
+                MaxPlayerPercentHpEnabled = x.MaxPlayerPercentHpEnabled,
                 MaxPlayerPercentHp = x.MaxPlayerPercentHp
             }).ToList();
         }
@@ -350,10 +395,13 @@ namespace Client.Application.ViewModels
                 var data = OpenOpenDialog();
                 if (data != null)
                 {
-                    var config = configDeserializer.Deserialize(data);
-                    if (config != null)
+                    var loadedConfig = configDeserializer.Deserialize(data);
+                    if (loadedConfig != null)
                     {
-                        LoadConfigFrom(config);
+                        // Load into ViewModel first
+                        LoadConfigFrom(loadedConfig);
+                        // Then update the singleton so it persists across window reopens
+                        SaveConfig();
                     }
                 }
             }
@@ -414,6 +462,31 @@ namespace Client.Application.ViewModels
             Zone.SelectedVertex = null;
         }
 
+        private void OnAddSkillCondition(object? sender)
+        {
+            CombatSkills.Add(new SkillCondition()
+            {
+                Enabled = true,
+                Id = 0,
+                Priority = CombatSkills.Count,
+                MaxTargetPercentHpEnabled = false,
+                MaxTargetPercentHp = 100,
+                MinPlayerPercentMpEnabled = false,
+                MinPlayerPercentMp = 0,
+                MaxPlayerPercentHpEnabled = false,
+                MaxPlayerPercentHp = 100
+            });
+        }
+
+        private void OnRemoveSkillCondition(object? sender)
+        {
+            if (SelectedSkillCondition != null)
+            {
+                CombatSkills.Remove(SelectedSkillCondition);
+                SelectedSkillCondition = null;
+            }
+        }
+
         private readonly NpcInfoHelperInterface npcInfoHelper;
         private readonly ItemInfoHelperInterface itemInfoHelper;
         private readonly SkillInfoHelperInterface skillInfoHelper;
@@ -435,6 +508,12 @@ namespace Client.Application.ViewModels
         private uint attackDistanceMili = 0;
         private uint attackDistanceBow = 0;
         private bool useOnlySkills = false;
+        private uint primaryAttackSkillId = 0;
+        private uint attackDistanceOverride = 0;
+        private bool kiteEnabled = false;
+        private uint kiteDistance = 200;
+        private bool waitForSkillCooldown = false;
+        private uint skillCastDelayMs = 3500;
         private CombatZone combatZone = new CombatZone();
         private Hero? hero;
         private byte delevelingTargetLevel = 0;
@@ -448,5 +527,6 @@ namespace Client.Application.ViewModels
         private int sweepDropDelayMs = 1500;
         private uint spoilSkillId = 0;
         private uint sweeperSkillId = 0;
+        private SkillCondition? selectedSkillCondition = null;
     }
 }

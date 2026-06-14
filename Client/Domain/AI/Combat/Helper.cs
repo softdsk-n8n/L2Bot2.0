@@ -13,22 +13,46 @@ namespace Client.Domain.AI.Combat
     {
         public static Skill? GetSkillByConfig(WorldHandler worldHandler, Config config, Hero hero, CreatureInterface target)
         {
-            var conditions = config.Combat.SkillConditions;
+            var allConditions = config.Combat.SkillConditions;
+            var enabledConditions = allConditions.Where(x => x.Enabled).OrderBy(x => x.Priority).ToList();
             var targetHp = target.VitalStats.HpPercent;
             var heroMp = hero.VitalStats.MpPercent;
             var heroHp = hero.VitalStats.HpPercent;
 
-            foreach (var condition in conditions )
+            if (allConditions.Count > 0)
+            {
+                DebugLogger.Log($"GetSkillByConfig: total conditions={allConditions.Count}, enabled={enabledConditions.Count}, allSkills={worldHandler.GetAllSkills().Count}, heroMP={heroMp}% heroHP={heroHp}% targetHP={targetHp}%");
+            }
+
+            foreach (var condition in enabledConditions)
             {
                 var skill = worldHandler.GetSkillById(condition.Id);
-                if (skill != null)
+                if (skill == null)
                 {
-                    if (condition.MaxTargetPercentHp < targetHp || condition.MinPlayerPercentMp > heroMp || condition.MaxPlayerPercentHp < heroHp)
-                    {
-                        continue;
-                    }
-                    return skill;
+                    DebugLogger.Log($"GetSkillByConfig: condition id={condition.Id} → skill NOT FOUND in world/skillInfo");
+                    continue;
                 }
+
+                DebugLogger.Log($"GetSkillByConfig: checking id={condition.Id} name={skill.Name} enabled_chks=[HP≤={condition.MaxTargetPercentHpEnabled}({condition.MaxTargetPercentHp}), MP≥={condition.MinPlayerPercentMpEnabled}({condition.MinPlayerPercentMp}), MyHP≤={condition.MaxPlayerPercentHpEnabled}({condition.MaxPlayerPercentHp})]");
+
+                if (condition.MaxTargetPercentHpEnabled && condition.MaxTargetPercentHp < targetHp)
+                {
+                    DebugLogger.Log($"GetSkillByConfig: SKIP id={condition.Id} — MaxTargetHp {condition.MaxTargetPercentHp}% < target {targetHp}%");
+                    continue;
+                }
+                if (condition.MinPlayerPercentMpEnabled && condition.MinPlayerPercentMp > heroMp)
+                {
+                    DebugLogger.Log($"GetSkillByConfig: SKIP id={condition.Id} — MinPlayerMp {condition.MinPlayerPercentMp}% > hero {heroMp}%");
+                    continue;
+                }
+                if (condition.MaxPlayerPercentHpEnabled && condition.MaxPlayerPercentHp < heroHp)
+                {
+                    DebugLogger.Log($"GetSkillByConfig: SKIP id={condition.Id} — MaxPlayerHp {condition.MaxPlayerPercentHp}% < hero {heroHp}%");
+                    continue;
+                }
+
+                DebugLogger.Log($"GetSkillByConfig: RETURNING skill id={condition.Id} name={skill.Name}");
+                return skill;
             }
 
             return null;
@@ -94,6 +118,23 @@ namespace Client.Domain.AI.Combat
 
         public static uint GetAttackDistanceByConfig(WorldHandler worldHandler, Config config, Hero hero, CreatureInterface target)
         {
+            // 1. PrimaryAttackSkillId — its Range is the approach distance even on cooldown
+            if (config.Combat.PrimaryAttackSkillId != 0)
+            {
+                var primarySkill = worldHandler.GetSkillById(config.Combat.PrimaryAttackSkillId);
+                if (primarySkill != null)
+                {
+                    return (uint)primarySkill.Range;
+                }
+            }
+
+            // 2. AttackDistanceOverride — manual override
+            if (config.Combat.AttackDistanceOverride != 0)
+            {
+                return config.Combat.AttackDistanceOverride;
+            }
+
+            // 3. Fallback: weapon-based + skill range (original logic)
             Skill? skill = GetSkillByConfig(worldHandler, config, hero, target);
 
             var equippedWeapon = worldHandler.GetEquippedWeapon();

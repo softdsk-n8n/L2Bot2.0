@@ -14,6 +14,7 @@ using System.Collections.Concurrent;
 using Client.Domain.Transports;
 using Client.Domain.Common;
 using Client.Domain.Helpers;
+using Client.Domain.AI;
 
 namespace Client.Domain.Service
 {
@@ -98,21 +99,23 @@ namespace Client.Domain.Service
         {
             if (hero == null)
             {
+                DebugLogger.Log("RequestUseSkill: BLOCKED — hero is null");
                 return;
             }
 
             if (!skills.TryGetValue(id, out Skill? skill))
             {
-                Debug.WriteLine("RequestUseSkill: skill " + id + " not found");
+                DebugLogger.Log($"RequestUseSkill: BLOCKED — skill {id} not in dict (total skills={skills.Count})");
                 return;
             }
 
             if (!skill.IsActive)
             {
-                Debug.WriteLine("RequestUseSkill: skill " + id + " is passive");
+                DebugLogger.Log($"RequestUseSkill: BLOCKED — skill {id} ({skill.Name}) is passive (IsActive={skill.IsActive})");
                 return;
             }
 
+            DebugLogger.Log($"RequestUseSkill: SENDING UseSkill id={id} name={skill.Name} forced={isForced}");
             SendUseSkillMessage(id, isForced, isShiftPressed);
         }
 
@@ -269,7 +272,30 @@ namespace Client.Domain.Service
 
         public Skill? GetSkillById(uint id)
         {
-            return skills.GetValueOrDefault(id);
+            if (skills.TryGetValue(id, out var skill))
+            {
+                return skill;
+            }
+
+            // Workaround: if C++ DLL didn't send this skill via pipe, create from skillInfo.json
+            try
+            {
+                var skillInfoHelper = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                    .GetRequiredService<SkillInfoHelperInterface>(App.AppHost!.Services);
+                if (skillInfoHelper.GetAllSkills().TryGetValue(id, out var info))
+                {
+                    skill = new Skill(info.Id, 1, info.IsActive, 0, 0, info.Name, "", "", false, false, false, true);
+                    skills.TryAdd(id, skill);
+                    var eventBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                        .GetRequiredService<EventBusInterface>(App.AppHost!.Services);
+                    eventBus.Publish(new SkillCreatedEvent(skill));
+                    DebugLogger.Log($"WorldHandler: lazy-loaded skill id={info.Id} name={info.Name} from skillInfo.json");
+                    return skill;
+                }
+            }
+            catch { /* silent — service locator not available */ }
+
+            return null;
         }
 
         public List<Skill> GetAllSkills()
@@ -348,6 +374,41 @@ namespace Client.Domain.Service
         public void Handle(HeroCreatedEvent @event)
         {
             hero = @event.Hero;
+
+            // Seed skills configured in combat config into the Skills tab
+            Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2));
+                SeedConfiguredSkills();
+            });
+        }
+
+        /// <summary>
+        /// Seeds skills from the combat config (PrimaryAttackSkill + SkillConditions) into the skills dict.
+        /// This makes them appear in the Skills tab even when C++ DLL doesn't send skill data.
+        /// </summary>
+        private void SeedConfiguredSkills()
+        {
+            try
+            {
+                var cfg = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                    .GetRequiredService<AI.Config>(App.AppHost!.Services);
+                var ids = new HashSet<uint>();
+
+                if (cfg.Combat.PrimaryAttackSkillId != 0)
+                    ids.Add(cfg.Combat.PrimaryAttackSkillId);
+
+                foreach (var sc in cfg.Combat.SkillConditions)
+                    if (sc.Id != 0) ids.Add(sc.Id);
+
+                DebugLogger.Log($"WorldHandler: seeding {ids.Count} skills from config: [{string.Join(",", ids)}]");
+                foreach (var id in ids)
+                    GetSkillById(id);
+            }
+            catch (System.Exception ex)
+            {
+                DebugLogger.Log($"WorldHandler: SeedConfiguredSkills failed: {ex.Message}");
+            }
         }
 
         public void Handle(HeroDeletedEvent @event)
@@ -386,12 +447,14 @@ namespace Client.Domain.Service
             if (!skills.ContainsKey(@event.Skill.Id))
             {
                 skills.TryAdd(@event.Skill.Id, @event.Skill);
+                DebugLogger.Log($"WorldHandler: SkillCreated id={@event.Skill.Id} name={@event.Skill.Name} isActive={@event.Skill.IsActive} range={@event.Skill.Range} cost={@event.Skill.Cost} total={skills.Count}");
             }
         }
 
         public void Handle(SkillDeletedEvent @event)
         {
             skills.Remove(@event.Id, out Skill? value);
+            DebugLogger.Log($"WorldHandler: SkillDeleted id={@event.Id} total={skills.Count}");
         }
 
         public void Handle(ItemCreatedEvent @event)

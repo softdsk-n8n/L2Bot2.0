@@ -32,92 +32,123 @@
                         <TabItem>
                             <TabItem.Header>Combat</TabItem.Header>
                             <TabItem.Content>
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                        <RowDefinition Height="Auto"></RowDefinition>
-                                    </Grid.RowDefinitions>
-                                    <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding DontAttackPlayers}">Don't attack players</CheckBox>
-                                    <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding AutoUseShots}">Auto use soul and spiritshots</CheckBox>
-                                    <CheckBox Grid.Row="2" Grid.Column="0" IsChecked="{Binding UseOnlySkills}">Use only skills</CheckBox>
-                                    <StackPanel Grid.Row="3" Grid.Column="0">
-                                        <Label>Pathfinder max passable height:</Label>
-                                        <TextBox Width="100" HorizontalAlignment="Left">
-                                            <TextBox.Text>
-                                                <Binding Path="MaxPassableHeight" UpdateSourceTrigger="PropertyChanged"/>
-                                            </TextBox.Text>
-                                        </TextBox>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel>
+                                        <!-- General -->
+                                        <GroupBox Header="General">
+                                            <StackPanel>
+                                                <CheckBox IsChecked="{Binding DontAttackPlayers}">Don't attack players</CheckBox>
+                                                <CheckBox IsChecked="{Binding AutoUseShots}">Auto use soul and spiritshots</CheckBox>
+                                                <CheckBox IsChecked="{Binding UseOnlySkills}">Use only skills</CheckBox>
+                                            </StackPanel>
+                                        </GroupBox>
+                                        <!-- Distance -->
+                                        <GroupBox Header="Distance">
+                                            <StackPanel>
+                                                <components:ObjectSelector
+                                                    Source="{Binding Skills}"
+                                                    SelectedValue="{Binding PrimaryAttackSkillId, Mode=TwoWay}"
+                                                    Header="Primary attack skill (its Range = approach distance):"/>
+                                                <Label>Attack distance override: (0 = auto)</Label>
+                                                <TextBox Width="100" HorizontalAlignment="Left">
+                                                    <TextBox.Text>
+                                                        <Binding Path="AttackDistanceOverride" UpdateSourceTrigger="PropertyChanged"/>
+                                                    </TextBox.Text>
+                                                </TextBox>
+                                                <Label>Attack distance for mili weapon:</Label>
+                                                <TextBox Width="100" HorizontalAlignment="Left">
+                                                    <TextBox.Text>
+                                                        <Binding Path="AttackDistanceMili" UpdateSourceTrigger="PropertyChanged"/>
+                                                    </TextBox.Text>
+                                                </TextBox>
+                                                <Label>Attack distance for bows:</Label>
+                                                <TextBox Width="100" HorizontalAlignment="Left">
+                                                    <TextBox.Text>
+                                                        <Binding Path="AttackDistanceBow" UpdateSourceTrigger="PropertyChanged"/>
+                                                    </TextBox.Text>
+                                                </TextBox>
+                                            </StackPanel>
+                                        </GroupBox>
+                                        <!-- Behavior -->
+                                        <GroupBox Header="Behavior">
+                                            <StackPanel>
+                                                <CheckBox IsChecked="{Binding WaitForSkillCooldown}">Wait for skill cooldown (don't melee when primary skill is on cooldown)</CheckBox>
+                                                <CheckBox IsChecked="{Binding KiteEnabled}">Enable kiting (step back if mob gets too close)</CheckBox>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Label>Kite distance:</Label>
+                                                    <TextBox Width="100" HorizontalAlignment="Left">
+                                                        <TextBox.Text>
+                                                            <Binding Path="KiteDistance" UpdateSourceTrigger="PropertyChanged"/>
+                                                        </TextBox.Text>
+                                                    </TextBox>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Label>Skill cast delay (ms):</Label>
+                                                    <TextBox Width="100" HorizontalAlignment="Left">
+                                                        <TextBox.Text>
+                                                            <Binding Path="SkillCastDelayMs" UpdateSourceTrigger="PropertyChanged"/>
+                                                        </TextBox.Text>
+                                                    </TextBox>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+                                        <!-- Skill Conditions -->
+                                        <GroupBox Header="Skill Conditions">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                                    <Button Command="{Binding AddSkillConditionCommand}" Margin="0,0,5,0">Add</Button>
+                                                    <Button Command="{Binding RemoveSkillConditionCommand}">Delete</Button>
+                                                </StackPanel>
+                                                <DataGrid
+                                                    AutoGenerateColumns="False" 
+                                                    Height="180"
+                                                    HorizontalAlignment="Left" 
+                                                    VerticalAlignment="Top" 
+                                                    ItemsSource="{Binding CombatSkills}"
+                                                    SelectedItem="{Binding SelectedSkillCondition}">
+                                                    <DataGrid.Columns>
+                                                        <DataGridCheckBoxColumn Header="On" Width="40" Binding="{Binding Enabled}" />
+                                                        <DataGridTextColumn Header="Priority" Width="60" Binding="{Binding Priority}" />
+                                                        <DataGridTemplateColumn Header="Skill" Width="250">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <ComboBox
+                                                                        ItemsSource="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=DataContext.Skills}"
+                                                                        SelectedValuePath="Id"
+                                                                        SelectedValue="{Binding Id}"
+                                                                        DisplayMemberPath="Name">
+                                                                        <ComboBox.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <VirtualizingStackPanel />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ComboBox.ItemsPanel>
+                                                                    </ComboBox>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
+                                                        <DataGridCheckBoxColumn Header="HP≤" Width="40" Binding="{Binding MaxTargetPercentHpEnabled}" />
+                                                        <DataGridTextColumn Header="MaxHP%" Width="55" Binding="{Binding MaxTargetPercentHp}" />
+                                                        <DataGridCheckBoxColumn Header="MP≥" Width="40" Binding="{Binding MinPlayerPercentMpEnabled}" />
+                                                        <DataGridTextColumn Header="MinMP%" Width="55" Binding="{Binding MinPlayerPercentMp}" />
+                                                        <DataGridCheckBoxColumn Header="MyHP≤" Width="50" Binding="{Binding MaxPlayerPercentHpEnabled}" />
+                                                        <DataGridTextColumn Header="MyHP%" Width="55" Binding="{Binding MaxPlayerPercentHp}" />
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </StackPanel>
+                                        </GroupBox>
+                                        <!-- Pathfinder -->
+                                        <GroupBox Header="Pathfinder">
+                                            <StackPanel>
+                                                <Label>Max passable height:</Label>
+                                                <TextBox Width="100" HorizontalAlignment="Left">
+                                                    <TextBox.Text>
+                                                        <Binding Path="MaxPassableHeight" UpdateSourceTrigger="PropertyChanged"/>
+                                                    </TextBox.Text>
+                                                </TextBox>
+                                            </StackPanel>
+                                        </GroupBox>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="4" Grid.Column="0">
-                                        <Label>Attack distance for mili weapon:</Label>
-                                        <TextBox Width="100" HorizontalAlignment="Left">
-                                            <TextBox.Text>
-                                                <Binding Path="AttackDistanceMili" UpdateSourceTrigger="PropertyChanged"/>
-                                            </TextBox.Text>
-                                        </TextBox>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="5" Grid.Column="0">
-                                        <Label>Attack distance for bows:</Label>
-                                        <TextBox Width="100" HorizontalAlignment="Left">
-                                            <TextBox.Text>
-                                                <Binding Path="AttackDistanceBow" UpdateSourceTrigger="PropertyChanged"/>
-                                            </TextBox.Text>
-                                        </TextBox>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="6" Grid.Column="0">
-                                        <Label>Skill conditions:</Label>
-                                        <DataGrid
-                                            AutoGenerateColumns="False" 
-                                            Height="150"
-                                            HorizontalAlignment="Left" 
-                                            VerticalAlignment="Top" 
-                                            ItemsSource="{Binding CombatSkills}">
-                                            <DataGrid.Columns>
-                                                <DataGridTemplateColumn Header="Skill" Width="300">
-                                                    <DataGridTemplateColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <ComboBox
-                                                                ItemsSource="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=DataContext.Skills}"
-                                                                SelectedValuePath="Id"
-                                                                SelectedValue="{Binding Id}"
-                                                                DisplayMemberPath="Name">
-                                                                <ComboBox.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <VirtualizingStackPanel />
-                                                                    </ItemsPanelTemplate>
-                                                                </ComboBox.ItemsPanel>
-                                                            </ComboBox>
-                                                        </DataTemplate>
-                                                    </DataGridTemplateColumn.CellTemplate>
-                                                </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="Max target % HP" Width="100" Binding="{Binding MaxTargetPercentHp}" />
-                                                <DataGridTextColumn Header="Min player % MP" Width="100" Binding="{Binding MinPlayerPercentMp}" />
-                                                <DataGridTextColumn Header="Max player % HP" Width="100" Binding="{Binding MaxPlayerPercentHp}" />
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="7" Grid.Column="0">
-                                        <Label>Combat zone:</Label>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="100"></ColumnDefinition>
-                                                <ColumnDefinition Width="120"></ColumnDefinition>
-                                                <ColumnDefinition Width="80"></ColumnDefinition>
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"></RowDefinition>
-                                                <RowDefinition Height="Auto"></RowDefinition>
-                                                <RowDefinition Height="Auto"></RowDefinition>
-                                            </Grid.RowDefinitions>
-                                        </Grid>
-                                    </StackPanel>
-                                </Grid>
+                                </ScrollViewer>
                             </TabItem.Content>
                         </TabItem>
                         <TabItem>

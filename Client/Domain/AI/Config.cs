@@ -8,9 +8,14 @@ namespace Client.Domain.AI
     {
         public struct SkillCondition
         {
+            public bool Enabled { get; set; }
             public uint Id { get; set; }
+            public int Priority { get; set; }
+            public bool MaxTargetPercentHpEnabled { get; set; }
             public byte MaxTargetPercentHp { get; set; }
+            public bool MinPlayerPercentMpEnabled { get; set; }
             public byte MinPlayerPercentMp { get; set; }
+            public bool MaxPlayerPercentHpEnabled { get; set; }
             public byte MaxPlayerPercentHp { get; set; }
         }
 
@@ -33,6 +38,12 @@ namespace Client.Domain.AI
             public uint AttackDistanceMili { get; set; } = 80;
             public uint AttackDistanceBow { get; set; } = 500;
             public bool UseOnlySkills { get; set; } = false;
+            public uint PrimaryAttackSkillId { get; set; } = 0;
+            public uint AttackDistanceOverride { get; set; } = 0;
+            public bool KiteEnabled { get; set; } = false;
+            public uint KiteDistance { get; set; } = 200;
+            public bool WaitForSkillCooldown { get; set; } = false;
+            public uint SkillCastDelayMs { get; set; } = 3500;
             public List<SkillCondition> SkillConditions { get; set; } = new List<SkillCondition>();
             public byte MaxPassableHeight { get; set; } = 30;
 

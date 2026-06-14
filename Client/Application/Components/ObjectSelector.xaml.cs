@@ -32,7 +32,7 @@ namespace Client.Application.Components
         }
 
         public static readonly DependencyProperty SelectedValueProperty =
-            DependencyProperty.Register("SelectedValue", typeof(object), typeof(ObjectSelector), new PropertyMetadata(default(object)));
+            DependencyProperty.Register("SelectedValue", typeof(object), typeof(ObjectSelector), new FrameworkPropertyMetadata(default(object), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
         public object SelectedValue
         {
             get { return GetValue(SelectedValueProperty); }
